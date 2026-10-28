@@ -86,6 +86,13 @@
     ▶ Kanal-Radio starten
   </button>
 
+  
+  <div>
+    <button id="previous">⏮ Vorheriger Song</button>
+    <button id="next">⏭ Nächster Song</button>
+  </div>
+
+
   <div class="player">
     <div id="radio"></div>
   </div>
@@ -127,6 +134,25 @@
           alert("Der Player lädt noch. Bitte erneut versuchen.");
         }
       });
+    
+      document.getElementById("previous")
+        .addEventListener("click", function () {
+          if (playerReady) {
+            player.previousVideo();
+          } else {
+            alert("Der Player lädt noch.");
+          }
+        });
+      
+      document.getElementById("next")
+        .addEventListener("click", function () {
+          if (playerReady) {
+            player.nextVideo();
+          } else {
+            alert("Der Player lädt noch.");
+          }
+        });
+
   </script>
 
 </body>
