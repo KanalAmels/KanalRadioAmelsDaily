@@ -1,0 +1,133 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kanal-Radio Amels Daily</title>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 30px 16px;
+      background: #111827;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+
+    h1 {
+      color: #facc15;
+      font-size: 30px;
+    }
+
+    .cover {
+      width: 100%;
+      max-width: 480px;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      border-radius: 16px;
+      margin: 20px auto;
+      display: block;
+    }
+
+    button {
+      background: #facc15;
+      color: #111827;
+      border: none;
+      border-radius: 12px;
+      padding: 18px 28px;
+      font-size: 20px;
+      font-weight: bold;
+      cursor: pointer;
+      margin: 15px auto 25px;
+    }
+
+    .player {
+      width: 100%;
+      max-width: 700px;
+      aspect-ratio: 16 / 9;
+      margin: auto;
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      border-radius: 12px;
+    }
+
+    .hint {
+      color: #cbd5e1;
+      font-size: 14px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Kanal-Radio Amels Daily</h1>
+  <p>Deine Musik. Dein Kanal-Radio.</p>
+
+  <!-- Austauschbares Titelbild -->
+  <img
+    class="cover"
+    src="radio-cover.jpg"
+    alt="Kanal-Radio Titelbild"
+    onerror="
+      this.onerror=null;
+      this.src='https://placehold.co/960x540/1e293b/facc15?text=KANAL-RADIO+DAILY';
+    "
+  >
+
+  <button id="start">
+    ▶ Kanal-Radio starten
+  </button>
+
+  <div class="player">
+    <div id="radio"></div>
+  </div>
+
+  <p class="hint">
+    Die neuesten Songs zuerst.
+    Einfach starten und Musik genießen!
+  </p>
+
+  <script src="https://www.youtube.com/iframe_api"></script>
+
+  <script>
+    let player;
+    let playerReady = false;
+
+    function onYouTubeIframeAPIReady() {
+      player = new YT.Player("radio", {
+        width: "100%",
+        height: "100%",
+        playerVars: {
+          listType: "playlist",
+          list: "PLB3xDmwcoNoQ",
+          playsinline: 1,
+          rel: 0
+        },
+        events: {
+          onReady: function () {
+            playerReady = true;
+          }
+        }
+      });
+    }
+
+    document.getElementById("start")
+      .addEventListener("click", function () {
+        if (playerReady) {
+          player.playVideo();
+        } else {
+          alert("Der Player lädt noch. Bitte erneut versuchen.");
+        }
+      });
+  </script>
+
+</body>
+</html>
