@@ -1,47 +1,58 @@
+
 <!DOCTYPE html>
-<html lang="de">  
+<html lang="de">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Kanal-Radio Amels Daily</title>
+  <title>Kanal-Radio Amels Daily – Test</title>
 
   <style>
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
 
     body {
       margin: 0;
-      padding: 30px 16px;
+      padding: 12px 16px 28px;
       background: #111827;
       color: white;
       font-family: Arial, sans-serif;
       text-align: center;
     }
 
+    header {
+      max-width: 700px;
+      margin: 0 auto 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
     h1 {
       color: #facc15;
-      font-size: 30px;
+      font-size: clamp(18px, 4vw, 28px);
+      margin: 0;
+      text-align: left;
+    }
+
+    .menu {
+      background: transparent;
+      color: white;
+      border: 1px solid #64748b;
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-size: 16px;
+      white-space: nowrap;
     }
 
     .cover {
+      display: block;
       width: 100%;
       max-width: 480px;
-      aspect-ratio: 16 / 9;
-      object-fit: cover;
+      height: auto;
+      margin: 12px auto 18px;
       border-radius: 16px;
-      margin: 20px auto;
-      display: block;
-    }
-
-    button {
-      background: #facc15;
-      color: #111827;
-      border: none;
-      border-radius: 12px;
-      padding: 18px 28px;
-      font-size: 20px;
-      font-weight: bold;
-      cursor: pointer;
-      margin: 15px auto 25px;
     }
 
     .player {
@@ -51,61 +62,77 @@
       margin: auto;
     }
 
+    #radio,
     iframe {
       width: 100%;
       height: 100%;
-      border: none;
+      border: 0;
       border-radius: 12px;
     }
 
-    .hint {
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      max-width: 700px;
+      margin: 18px auto;
+    }
+
+    .controls button {
+      flex: 1;
+      max-width: 160px;
+      background: #facc15;
+      color: #111827;
+      border: 0;
+      border-radius: 12px;
+      padding: 14px 8px;
+      font-size: clamp(14px, 3.5vw, 19px);
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .tagline {
       color: #cbd5e1;
-      font-size: 14px;
+      margin: 22px auto 0;
     }
   </style>
 
   <meta property="og:type" content="website">
   <meta property="og:title" content="🎶 Kanal-Radio Amels Daily">
-  <meta property="og:description" content="Dein Kanal-Radio – einschalten und Musik genießen!">
-  <meta property="og:image" content="https://kanalamels.github.io/KanalRadioAmelsDaily/radio-cover2.png">
-  <meta property="og:url" content="https://kanalamels.github.io/KanalRadioAmelsDaily/">
-  
+  <meta property="og:description"
+        content="Dein Kanal-Radio – einschalten und Musik genießen!">
+  <meta property="og:image"
+        content="https://kanalamels.github.io/KanalRadioAmelsDaily/radio-cover2.png">
 </head>
 
 <body>
 
-  <h1>Kanal-Radio Amels Daily</h1>
-  <p>Deine Musik. Dein Kanal-Radio.</p>
+  <header>
+    <h1>Kanal-Radio Amels</h1>
+    <button class="menu" type="button"
+            title="Senderauswahl folgt in Schritt zwei">
+      Menü ☰
+    </button>
+  </header>
 
-  <!-- Austauschbares Titelbild -->
   <img
     class="cover"
     src="radiocover.png"
-    alt="Kanal-Radio Titelbild"
-    onerror="
-      this.onerror=null;
-      this.src='https://placehold.co/960x540/1e293b/facc15?text=KANAL-RADIO+DAILY';
-    "
+    alt="Kanal-Radio Amels Daily Titelbild"
   >
-
-  <button id="start">
-    ▶ Kanal-Radio starten
-  </button>
-
-  
-  <div>
-    <button id="previous">⏮ Vorheriger Song</button>
-    <button id="next">⏭ Nächster Song</button>
-  </div>
-
 
   <div class="player">
     <div id="radio"></div>
   </div>
 
-  <p class="hint">
-    Die neuesten Songs zuerst.
-    Einfach starten und Musik genießen!
+  <div class="controls">
+    <button id="previous" type="button">⏮ Last</button>
+    <button id="start" type="button">▶ Start</button>
+    <button id="next" type="button">⏭ Next</button>
+  </div>
+
+  <p class="tagline">
+    Deine Musik. Dein Kanal-Radio.
   </p>
 
   <script src="https://www.youtube.com/iframe_api"></script>
@@ -132,33 +159,29 @@
       });
     }
 
+    function control(action) {
+      if (!playerReady) {
+        alert("Der Player lädt noch. Bitte erneut versuchen.");
+        return;
+      }
+
+      player[action]();
+    }
+
     document.getElementById("start")
       .addEventListener("click", function () {
-        if (playerReady) {
-          player.playVideo();
-        } else {
-          alert("Der Player lädt noch. Bitte erneut versuchen.");
-        }
+        control("playVideo");
       });
-    
-      document.getElementById("previous")
-        .addEventListener("click", function () {
-          if (playerReady) {
-            player.previousVideo();
-          } else {
-            alert("Der Player lädt noch.");
-          }
-        });
-      
-      document.getElementById("next")
-        .addEventListener("click", function () {
-          if (playerReady) {
-            player.nextVideo();
-          } else {
-            alert("Der Player lädt noch.");
-          }
-        });
 
+    document.getElementById("previous")
+      .addEventListener("click", function () {
+        control("previousVideo");
+      });
+
+    document.getElementById("next")
+      .addEventListener("click", function () {
+        control("nextVideo");
+      });
   </script>
 
 </body>
