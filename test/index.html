@@ -1,9 +1,11 @@
 
 <!DOCTYPE html>
 <html lang="de">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <title>Kanal-Radio Amels Daily – Test</title>
 
   <style>
@@ -44,6 +46,7 @@
       padding: 9px 12px;
       font-size: 16px;
       white-space: nowrap;
+      cursor: pointer;
     }
 
     .cover {
@@ -74,7 +77,7 @@
       display: flex;
       justify-content: center;
       gap: 10px;
-      max-width: 700px;
+      max-width: 480px;
       margin: 18px auto;
     }
 
@@ -91,9 +94,54 @@
       cursor: pointer;
     }
 
+    /* Unterer Bereich mit Spruch und YouTube-Button */
+
+    .footer {
+      width: 100%;
+      max-width: 480px;
+      margin: 22px auto 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
     .tagline {
       color: #cbd5e1;
-      margin: 22px auto 0;
+      font-size: 14px;
+      margin: 0;
+      text-align: left;
+    }
+
+    .youtube-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: #ff0033;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-size: 13px;
+      font-weight: bold;
+      white-space: nowrap;
+      transition: background 0.2s;
+    }
+
+    .youtube-button:hover {
+      background: #cc0029;
+    }
+
+    @media (max-width: 380px) {
+      .footer {
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .tagline {
+        text-align: center;
+      }
     }
   </style>
 
@@ -103,17 +151,25 @@
         content="Dein Kanal-Radio – einschalten und Musik genießen!">
   <meta property="og:image"
         content="https://kanalamels.github.io/KanalRadioAmelsDaily/radio-cover2.png">
+
 </head>
 
 <body>
 
+  <!-- Kopfzeile -->
+
   <header>
     <h1>Kanal-Radio Amels</h1>
-    <button class="menu" type="button"
-            title="Senderauswahl folgt in Schritt zwei">
+
+    <button
+      class="menu"
+      type="button"
+      title="Senderauswahl folgt in Schritt zwei">
       Menü ☰
     </button>
   </header>
+
+  <!-- Titelbild -->
 
   <img
     class="cover"
@@ -121,9 +177,13 @@
     alt="Kanal-Radio Amels Daily Titelbild"
   >
 
+  <!-- YouTube-Player -->
+
   <div class="player">
     <div id="radio"></div>
   </div>
+
+  <!-- Steuerung -->
 
   <div class="controls">
     <button id="previous" type="button">⏮ Last</button>
@@ -131,9 +191,25 @@
     <button id="next" type="button">⏭ Next</button>
   </div>
 
-  <p class="tagline">
-    Deine Musik. Dein Kanal-Radio.
-  </p>
+  <!-- Spruch und YouTube-Link -->
+
+  <div class="footer">
+
+    <p class="tagline">
+      Deine Musik. Dein Kanal-Radio.
+    </p>
+
+    <a
+      class="youtube-button"
+      href="https://www.youtube.com/playlist?list=PLB3xDmwcoNoQ"
+      target="_blank"
+      rel="noopener noreferrer">
+      ▶ Auf YouTube öffnen
+    </a>
+
+  </div>
+
+  <!-- YouTube-API -->
 
   <script src="https://www.youtube.com/iframe_api"></script>
 
