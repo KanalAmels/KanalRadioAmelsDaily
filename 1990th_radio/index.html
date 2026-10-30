@@ -1,1 +1,378 @@
 
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Kanal-Radio Amels 1990th Radio</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 12px 16px 28px;
+      background: #111827;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+
+    header {
+      max-width: 700px;
+      margin: 0 auto 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    h1 {
+      color: #facc15;
+      font-size: clamp(18px, 4vw, 28px);
+      margin: 0;
+      text-align: left;
+    }
+
+    /* Senderauswahl */
+
+    .menu-container {
+      position: relative;
+    }
+
+    .menu {
+      background: transparent;
+      color: white;
+      border: 1px solid #64748b;
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-size: 16px;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .menu-dropdown {
+      display: none;
+      position: absolute;
+      right: 0;
+      top: calc(100% + 6px);
+      min-width: 190px;
+      background: #1f2937;
+      border: 1px solid #64748b;
+      border-radius: 10px;
+      overflow: hidden;
+      z-index: 1000;
+      text-align: left;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+
+    .menu-dropdown.open {
+      display: block;
+    }
+
+    .menu-dropdown a {
+      display: block;
+      padding: 13px 16px;
+      color: white;
+      text-decoration: none;
+    }
+
+    .menu-dropdown a:hover,
+    .menu-dropdown a:focus-visible {
+      background: #374151;
+    }
+
+    .menu-dropdown a[aria-current="page"] {
+      color: #facc15;
+      font-weight: bold;
+    }
+
+    /* Titelbild */
+
+    .cover {
+      display: block;
+      width: 100%;
+      max-width: 480px;
+      height: auto;
+      margin: 12px auto 18px;
+      border-radius: 16px;
+    }
+
+    /* YouTube-Player */
+
+    .player {
+      width: 100%;
+      max-width: 480px;
+      aspect-ratio: 16 / 9;
+      margin: auto;
+    }
+
+    #radio,
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      border-radius: 12px;
+    }
+
+    /* Steuerung */
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      max-width: 480px;
+      margin: 18px auto;
+    }
+
+    .controls button {
+      flex: 1;
+      max-width: 160px;
+      background: #facc15;
+      color: #111827;
+      border: 0;
+      border-radius: 12px;
+      padding: 14px 8px;
+      font-size: clamp(14px, 3.5vw, 19px);
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    /* Unterer Bereich */
+
+    .footer {
+      width: 100%;
+      max-width: 480px;
+      margin: 22px auto 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .tagline {
+      color: #cbd5e1;
+      font-size: 14px;
+      margin: 0;
+      text-align: left;
+    }
+
+    .youtube-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: #ff0033;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-size: 13px;
+      font-weight: bold;
+      white-space: nowrap;
+      transition: background 0.2s;
+    }
+
+    .youtube-button:hover {
+      background: #cc0029;
+    }
+
+    @media (max-width: 380px) {
+      .footer {
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .tagline {
+        text-align: center;
+      }
+    }
+  </style>
+
+  <!-- Vorschau für WhatsApp und soziale Netzwerke -->
+
+  <meta property="og:type" content="website">
+  <meta property="og:title"
+        content="🎶 Kanal-Radio Amels 1990th Radio">
+  <meta property="og:description"
+        content="Die Radio-Hits der 90er – einschalten und genießen!">
+  <meta property="og:image"
+        content="https://kanalamels.github.io/KanalRadioAmelsDaily/1990th_radio/radiocover_1990th_radio.png">
+
+</head>
+
+<body>
+
+  <!-- Kopfzeile -->
+
+  <header>
+    <h1>Kanal-Radio Amels</h1>
+
+    <div class="menu-container">
+
+      <button
+        class="menu"
+        id="menu-button"
+        type="button"
+        aria-expanded="false"
+        aria-controls="menu-dropdown">
+        Menü ☰
+      </button>
+
+      <nav
+        class="menu-dropdown"
+        id="menu-dropdown"
+        aria-label="Senderauswahl">
+
+        <a href="/KanalRadioAmelsDaily/">
+          🎵 Daily
+        </a>
+
+        <a href="/KanalRadioAmelsDaily/1990th_dance/">
+          🪩 1990th Dance
+        </a>
+
+        <a
+          href="/KanalRadioAmelsDaily/1990th_radio/"
+          aria-current="page">
+          📻 1990th Radio
+        </a>
+
+      </nav>
+
+    </div>
+  </header>
+
+  <!-- Titelbild -->
+
+  <img
+    class="cover"
+    id="radio-cover"
+    src="radiocover_1990th_radio.png"
+    alt="Kanal-Radio Amels 1990th Radio Titelbild"
+  >
+
+  <!-- YouTube-Player -->
+
+  <div class="player">
+    <div id="radio"></div>
+  </div>
+
+  <!-- Steuerung -->
+
+  <div class="controls">
+    <button id="previous" type="button">⏮ Last</button>
+    <button id="start" type="button">▶ Start</button>
+    <button id="next" type="button">⏭ Next</button>
+  </div>
+
+  <!-- Spruch und YouTube-Link -->
+
+  <div class="footer">
+
+    <p class="tagline">
+      Deine Musik. Dein Kanal-Radio.
+    </p>
+
+    <a
+      class="youtube-button"
+      href="https://www.youtube.com/playlist?list=PLdaYDPTMIOWM"
+      target="_blank"
+      rel="noopener noreferrer">
+      ▶ Auf YouTube öffnen
+    </a>
+
+  </div>
+
+  <!-- YouTube-API -->
+
+  <script src="https://www.youtube.com/iframe_api"></script>
+
+  <script>
+    let player;
+    let playerReady = false;
+
+    function onYouTubeIframeAPIReady() {
+      player = new YT.Player("radio", {
+        width: "100%",
+        height: "100%",
+        playerVars: {
+          listType: "playlist",
+          list: "PLdaYDPTMIOWM",
+          playsinline: 1,
+          rel: 0
+        },
+        events: {
+          onReady: function () {
+            playerReady = true;
+          }
+        }
+      });
+    }
+
+    function control(action) {
+      if (!playerReady) {
+        alert("Der Player lädt noch. Bitte erneut versuchen.");
+        return;
+      }
+
+      player[action]();
+    }
+
+    document.getElementById("start")
+      .addEventListener("click", function () {
+        control("playVideo");
+      });
+
+    document.getElementById("previous")
+      .addEventListener("click", function () {
+        control("previousVideo");
+      });
+
+    document.getElementById("next")
+      .addEventListener("click", function () {
+        control("nextVideo");
+      });
+
+    // Automatische Cover-Aktualisierung
+
+    const cover = document.getElementById("radio-cover");
+    cover.src = "radiocover_1990th_radio.png?t=" + Date.now();
+
+    // Senderauswahl
+
+    const menuButton = document.getElementById("menu-button");
+    const menuDropdown = document.getElementById("menu-dropdown");
+
+    function closeMenu() {
+      menuDropdown.classList.remove("open");
+      menuButton.setAttribute("aria-expanded", "false");
+    }
+
+    menuButton.addEventListener("click", function () {
+      const isOpen = menuDropdown.classList.toggle("open");
+      menuButton.setAttribute("aria-expanded", String(isOpen));
+    });
+
+    document.addEventListener("click", function (event) {
+      if (!event.target.closest(".menu-container")) {
+        closeMenu();
+      }
+    });
+
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") {
+        closeMenu();
+        menuButton.focus();
+      }
+    });
+
+  </script>
+
+</body>
+</html>
+
