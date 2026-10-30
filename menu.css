@@ -1,0 +1,53 @@
+
+/* Kanal-Radio Amels – Zentrales Sendermenü */
+
+.menu-container {
+  position: relative;
+}
+
+.menu {
+  background: transparent;
+  color: white;
+  border: 1px solid #64748b;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 16px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.menu-dropdown {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  min-width: 190px;
+  background: #1f2937;
+  border: 1px solid #64748b;
+  border-radius: 10px;
+  overflow: hidden;
+  z-index: 1000;
+  text-align: left;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.menu-dropdown.open {
+  display: block;
+}
+
+.menu-dropdown a {
+  display: block;
+  padding: 13px 16px;
+  color: white;
+  text-decoration: none;
+}
+
+.menu-dropdown a:hover,
+.menu-dropdown a:focus-visible {
+  background: #374151;
+}
+
+.menu-dropdown a[aria-current="page"] {
+  color: #facc15;
+  font-weight: bold;
+}
