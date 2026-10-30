@@ -21,7 +21,11 @@
   position: absolute;
   right: 0;
   top: calc(100% + 6px);
-  min-width: 190px;
+
+  /* Breiteres Menü ohne Zeilenumbrüche */
+  min-width: 230px;
+  max-width: calc(100vw - 32px);
+
   background: #1f2937;
   border: 1px solid #64748b;
   border-radius: 10px;
@@ -38,8 +42,14 @@
 .menu-dropdown a {
   display: block;
   padding: 13px 16px;
-  color: white;
+  color: #facc15;
   text-decoration: none;
+  white-space: nowrap;
+  font-weight: 400;
+}
+
+.menu-dropdown a:visited {
+  color: #facc15;
 }
 
 .menu-dropdown a:hover,
@@ -47,23 +57,10 @@
   background: #374151;
 }
 
-.menu-dropdown a[aria-current="page"] {
-  color: #facc15;
-  font-weight: bold;
-}
-
-
-/* Alle Sendernamen gelb, normal */
-.menu-dropdown a,
-.menu-dropdown a:visited {
-  color: #facc15;
-  font-weight: 400;
-}
-
 /* Aktiver Sender gelb und fett */
+
 .menu-dropdown a.active,
 .menu-dropdown a[aria-current="page"] {
   color: #facc15;
   font-weight: 700;
 }
-
