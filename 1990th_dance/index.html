@@ -6,7 +6,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <title>Kanal-Radio Amels 90th Dance</title>
+  <title>Kanal-Radio Amels 1990th Dance</title>
 
   <style>
     * {
@@ -146,11 +146,11 @@
   </style>
 
   <meta property="og:type" content="website">
-  <meta property="og:title" content="🎶 Kanal-Radio Amels Daily">
+  <meta property="og:title" content="🎶 Kanal-Radio Amels 1990th Dance">
   <meta property="og:description"
-        content="Dein Kanal-Radio – einschalten und Musik genießen!">
+        content="90er Dance-Hits – einschalten und Musik genießen!">
   <meta property="og:image"
-        content="https://kanalamels.github.io/KanalRadioAmelsDaily/radiocover_90th_dance.png">
+        content="https://kanalamels.github.io/KanalRadioAmelsDaily/1990th_dance/radiocover_90th_dance.png">
 
 </head>
 
@@ -173,9 +173,9 @@
 
   <img
     class="cover"
-    id="daily-cover"
+    id="dance-cover"
     src="radiocover_90th_dance.png"
-    alt="Kanal-Radio Amels 90th Dance Titelbild"
+    alt="Kanal-Radio Amels 1990th Dance Titelbild"
   >
 
   <!-- YouTube-Player -->
@@ -259,8 +259,9 @@
       .addEventListener("click", function () {
         control("nextVideo");
       });
-    
-    const cover = document.getElementById("daily-cover");
+
+    // Automatische Cover-Aktualisierung
+    const cover = document.getElementById("dance-cover");
     cover.src = "radiocover_90th_dance.png?t=" + Date.now();
 
   </script>
