@@ -6,9 +6,9 @@
 }
 
 .menu {
-  background: transparent;
-  color: white;
-  border: 1px solid #64748b;
+  background: #ffcc00;
+  color: black;
+  border: 1px solid #ffcc00;
   border-radius: 8px;
   padding: 9px 12px;
   font-size: 16px;
