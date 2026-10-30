@@ -51,3 +51,19 @@
   color: #facc15;
   font-weight: bold;
 }
+
+
+/* Alle Sendernamen gelb, normal */
+.menu-dropdown a,
+.menu-dropdown a:visited {
+  color: #facc15;
+  font-weight: 400;
+}
+
+/* Aktiver Sender gelb und fett */
+.menu-dropdown a.active,
+.menu-dropdown a[aria-current="page"] {
+  color: #facc15;
+  font-weight: 700;
+}
+
