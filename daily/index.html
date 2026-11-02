@@ -162,8 +162,12 @@
         content="🎶 Kanal-Radio Amels Daily">
   <meta property="og:description"
         content="Dein Kanal-Radio – einschalten und Musik genießen!">
+  <meta property="og:url"
+        content="https://kanalamels.github.io/KanalRadioAmelsDaily/daily/">
   <meta property="og:image"
-        content="https://kanalamels.github.io/KanalRadioAmelsDaily/daily/radiocover_daily.png">
+        content="https://kanalamels.github.io/KanalRadioAmelsDaily/daily/radiocover_daily.jpeg">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta name="twitter:card" content="summary_large_image">
 
 </head>
 
@@ -183,7 +187,7 @@
   <img
     class="cover"
     id="daily-cover"
-    src="radiocover_daily.png"
+    src="radiocover_daily.jpeg"
     alt="Kanal-Radio Amels Daily Titelbild"
   >
 
@@ -272,7 +276,7 @@
 
     // Daily-Cover bei jedem Seitenaufruf frisch laden
     document.getElementById("daily-cover").src =
-      "radiocover_daily.png?t=" + Date.now();
+      "radiocover_daily.jpeg?t=" + Date.now();
 
   </script>
 
