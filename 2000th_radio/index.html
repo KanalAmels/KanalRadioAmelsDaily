@@ -27,7 +27,7 @@
     }
 
     header {
-      max-width: 700px;
+      max-width: 480px;
       margin: 0 auto 14px;
       display: flex;
       justify-content: space-between;
@@ -52,6 +52,7 @@
     }
 
     /* Titelbild */
+
     .cover {
       display: block;
       width: 100%;
@@ -62,6 +63,7 @@
     }
 
     /* YouTube-Player */
+
     .player {
       width: 100%;
       max-width: 480px;
@@ -78,6 +80,7 @@
     }
 
     /* Steuerung */
+
     .controls {
       display: flex;
       justify-content: center;
@@ -100,6 +103,7 @@
     }
 
     /* Unterer Bereich */
+
     .footer {
       width: 100%;
       max-width: 480px;
@@ -110,8 +114,10 @@
       gap: 12px;
     }
 
+    /* Slogan: gelb und linksbündig */
+
     .tagline {
-      color: #cbd5e1;
+      color: #facc15;
       font-size: 14px;
       margin: 0;
       text-align: left;
@@ -144,12 +150,13 @@
       }
 
       .tagline {
-        text-align: center;
+        text-align: left;
       }
     }
   </style>
 
   <!-- Vorschau für WhatsApp und soziale Netzwerke -->
+
   <meta property="og:type" content="website">
   <meta property="og:title"
         content="🎶 Kanal-Radio Amels 2000th Radio">
@@ -163,13 +170,16 @@
 <body>
 
   <!-- Kopfzeile -->
+
   <header>
     <h1>Kanal-Radio Amels <span style="color: #facc15;">&#9835;</span> 😃👍</h1>
+
     <!-- Das Menü wird zentral geladen -->
     <div class="menu-container" id="menu-container"></div>
   </header>
 
   <!-- Titelbild -->
+
   <img
     class="cover"
     id="radio-cover"
@@ -178,11 +188,13 @@
   >
 
   <!-- YouTube-Player -->
+
   <div class="player">
     <div id="radio"></div>
   </div>
 
   <!-- Steuerung -->
+
   <div class="controls">
     <button id="previous" type="button">⏮ Last</button>
     <button id="start" type="button">▶ Start</button>
@@ -190,9 +202,10 @@
   </div>
 
   <!-- Spruch und YouTube-Link -->
+
   <div class="footer">
 
-    <p style="color: #ffcc00;">
+    <p class="tagline">
       Deine Musik.<br>
       Dein Kanal-Radio.
     </p>
@@ -208,6 +221,7 @@
   </div>
 
   <!-- YouTube-API -->
+
   <script src="https://www.youtube.com/iframe_api"></script>
 
   <script>
@@ -259,4 +273,3 @@
 
 </body>
 </html>
-
