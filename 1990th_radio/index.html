@@ -27,7 +27,7 @@
     }
 
     header {
-      max-width: 700px;
+      max-width: 480px;
       margin: 0 auto 14px;
       display: flex;
       justify-content: space-between;
@@ -114,8 +114,10 @@
       gap: 12px;
     }
 
+    /* Slogan: gelb und linksbündig */
+
     .tagline {
-      color: #cbd5e1;
+      color: #facc15;
       font-size: 14px;
       margin: 0;
       text-align: left;
@@ -148,7 +150,7 @@
       }
 
       .tagline {
-        text-align: center;
+        text-align: left;
       }
     }
   </style>
@@ -171,6 +173,7 @@
 
   <header>
     <h1>Kanal-Radio Amels <span style="color: #facc15;">&#9835;</span> 😃👍</h1>
+
     <!-- Das Menü wird zentral geladen -->
     <div class="menu-container" id="menu-container"></div>
   </header>
@@ -202,7 +205,7 @@
 
   <div class="footer">
 
-    <p style="color: #ffcc00;">
+    <p class="tagline">
       Deine Musik.<br>
       Dein Kanal-Radio.
     </p>
