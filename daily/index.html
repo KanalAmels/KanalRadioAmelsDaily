@@ -96,6 +96,9 @@
       color: #111827;
       border: 0;
       border-radius: 12px;
+    }
+
+    .controls button {
       padding: 14px 8px;
       font-size: clamp(14px, 3.5vw, 19px);
       font-weight: bold;
@@ -165,8 +168,8 @@
   <meta property="og:url"
         content="https://kanalamels.github.io/KanalRadioAmelsDaily/daily/">
   <meta property="og:image"
-        content="https://kanalamels.github.io/KanalRadioAmelsDaily/daily/radiocover_daily.jpg">
-  <meta property="og:image:type" content="image/jpeg">
+        content="https://kanalamels.github.io/KanalRadioAmelsDaily/daily/radiocover_daily.png">
+  <meta property="og:image:type" content="image/png">
   <meta name="twitter:card" content="summary_large_image">
 
 </head>
@@ -187,7 +190,7 @@
   <img
     class="cover"
     id="daily-cover"
-    src="radiocover_daily.jpg"
+    src="radiocover_daily.png"
     alt="Kanal-Radio Amels Daily Titelbild"
   >
 
@@ -276,7 +279,7 @@
 
     // Daily-Cover bei jedem Seitenaufruf frisch laden
     document.getElementById("daily-cover").src =
-      "radiocover_daily.jpg?t=" + Date.now();
+      "radiocover_daily.png?t=" + Date.now();
 
   </script>
 
