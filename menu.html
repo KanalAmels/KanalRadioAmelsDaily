@@ -5,6 +5,56 @@
      id="menu-dropdown"
      aria-label="Senderauswahl">
 
+  <style>
+    #menu-dropdown .menu-decade {
+      width: 100%;
+    }
+
+    #menu-dropdown .menu-decade > summary {
+      display: grid;
+      grid-template-columns: 32px 1fr 18px;
+      align-items: center;
+      column-gap: 10px;
+      cursor: pointer;
+      list-style: none;
+      user-select: none;
+    }
+
+    #menu-dropdown .menu-decade > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    #menu-dropdown .menu-arrow {
+      color: #facc15;
+      font-size: 20px;
+      text-align: center;
+    }
+
+    #menu-dropdown .menu-arrow::after {
+      content: "›";
+    }
+
+    #menu-dropdown .menu-decade[open] .menu-arrow::after {
+      content: "⌄";
+    }
+
+    #menu-dropdown .menu-submenu {
+      padding-left: 16px;
+    }
+
+    #menu-dropdown .menu-submenu a {
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      align-items: center;
+      column-gap: 10px;
+    }
+
+    #menu-dropdown .menu-decade summary:hover,
+    #menu-dropdown .menu-submenu a:hover {
+      color: #facc15;
+    }
+  </style>
+
   <!-- DAILY -->
 
   <a href="/KanalRadioAmelsDaily/daily/"
@@ -21,137 +71,171 @@
   </a>
 
 
-  <!-- 1990th DANCE-MIX -->
+  <!-- 1990er JAHRE -->
 
-  <a href="/KanalRadioAmelsDaily/1990th_dance/"
-     style="display: grid;
-            grid-template-columns: 32px 1fr;
-            align-items: center;
-            column-gap: 10px;">
+  <details class="menu-decade">
+    <summary>
+      <span style="color: #facc15; font-size: 24px;">♫</span>
+      <span>1990er Jahre</span>
+      <span class="menu-arrow" aria-hidden="true"></span>
+    </summary>
 
-    <!-- Gelber Tänzer -->
+    <div class="menu-submenu">
 
-    <svg width="28"
-         height="28"
-         viewBox="0 0 24 24"
-         fill="none"
-         stroke="#facc15"
-         stroke-width="2"
-         stroke-linecap="round"
-         stroke-linejoin="round"
-         aria-hidden="true">
+      <a href="/KanalRadioAmelsDaily/1990th_dance/">
+        <!-- Gelber Tänzer -->
+        <svg width="28" height="28"
+             viewBox="0 0 24 24" fill="none"
+             stroke="#facc15" stroke-width="2"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             aria-hidden="true">
+          <circle cx="12" cy="4" r="2"/>
+          <path d="M12 6 L10 13 L15 16"/>
+          <path d="M11 8 L5 5 L3 2"/>
+          <path d="M11 9 L17 7 L21 10"/>
+          <path d="M10 13 L5 20"/>
+          <path d="M15 16 L20 21"/>
+        </svg>
+        <span>1990th Dance-Mix</span>
+      </a>
 
-      <circle cx="12" cy="4" r="2"/>
-      <path d="M12 6 L10 13 L15 16"/>
-      <path d="M11 8 L5 5 L3 2"/>
-      <path d="M11 9 L17 7 L21 10"/>
-      <path d="M10 13 L5 20"/>
-      <path d="M15 16 L20 21"/>
+      <a href="/KanalRadioAmelsDaily/1990th_radio/">
+        <!-- Gelbes Radio -->
+        <svg width="28" height="28"
+             viewBox="0 0 24 24" fill="none"
+             stroke="#facc15" stroke-width="2"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             aria-hidden="true">
+          <rect x="3" y="7" width="18" height="13" rx="2"/>
+          <path d="M5 7L17 3"/>
+          <circle cx="9" cy="14" r="3"/>
+          <path d="M15 12h3M15 16h3"/>
+        </svg>
+        <span>1990th Radio-Mix</span>
+      </a>
 
-    </svg>
-
-    <span>1990th Dance-Mix</span>
-  </a>
-
-
-  <!-- 1990th RADIO-MIX -->
-
-  <a href="/KanalRadioAmelsDaily/1990th_radio/"
-     style="display: grid;
-            grid-template-columns: 32px 1fr;
-            align-items: center;
-            column-gap: 10px;">
-
-    <!-- Gelbes Radio -->
-
-    <svg width="28"
-         height="28"
-         viewBox="0 0 24 24"
-         fill="none"
-         stroke="#facc15"
-         stroke-width="2"
-         stroke-linecap="round"
-         stroke-linejoin="round"
-         aria-hidden="true">
-
-      <rect x="3" y="7"
-            width="18"
-            height="13"
-            rx="2"/>
-      <path d="M5 7L17 3"/>
-      <circle cx="9" cy="14" r="3"/>
-      <path d="M15 12h3M15 16h3"/>
-
-    </svg>
-
-    <span>1990th Radio-Mix</span>
-  </a>
+    </div>
+  </details>
 
 
-  <!-- 2000th DANCE-MIX -->
+  <!-- 2000er JAHRE -->
 
-  <a href="/KanalRadioAmelsDaily/2000th_dance/"
-     style="display: grid;
-            grid-template-columns: 32px 1fr;
-            align-items: center;
-            column-gap: 10px;">
+  <details class="menu-decade">
+    <summary>
+      <span style="color: #facc15; font-size: 24px;">♫</span>
+      <span>2000er Jahre</span>
+      <span class="menu-arrow" aria-hidden="true"></span>
+    </summary>
 
-    <!-- Gelber Tänzer -->
+    <div class="menu-submenu">
 
-    <svg width="28"
-         height="28"
-         viewBox="0 0 24 24"
-         fill="none"
-         stroke="#facc15"
-         stroke-width="2"
-         stroke-linecap="round"
-         stroke-linejoin="round"
-         aria-hidden="true">
+      <a href="/KanalRadioAmelsDaily/2000th_dance/">
+        <!-- Gelber Tänzer -->
+        <svg width="28" height="28"
+             viewBox="0 0 24 24" fill="none"
+             stroke="#facc15" stroke-width="2"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             aria-hidden="true">
+          <circle cx="12" cy="4" r="2"/>
+          <path d="M12 6 L10 13 L15 16"/>
+          <path d="M11 8 L5 5 L3 2"/>
+          <path d="M11 9 L17 7 L21 10"/>
+          <path d="M10 13 L5 20"/>
+          <path d="M15 16 L20 21"/>
+        </svg>
+        <span>2000th Dance-Mix</span>
+      </a>
 
-      <circle cx="12" cy="4" r="2"/>
-      <path d="M12 6 L10 13 L15 16"/>
-      <path d="M11 8 L5 5 L3 2"/>
-      <path d="M11 9 L17 7 L21 10"/>
-      <path d="M10 13 L5 20"/>
-      <path d="M15 16 L20 21"/>
+      <a href="/KanalRadioAmelsDaily/2000th_radio/">
+        <!-- Gelbes Radio -->
+        <svg width="28" height="28"
+             viewBox="0 0 24 24" fill="none"
+             stroke="#facc15" stroke-width="2"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             aria-hidden="true">
+          <rect x="3" y="7" width="18" height="13" rx="2"/>
+          <path d="M5 7L17 3"/>
+          <circle cx="9" cy="14" r="3"/>
+          <path d="M15 12h3M15 16h3"/>
+        </svg>
+        <span>2000th Radio-Mix</span>
+      </a>
 
-    </svg>
-
-    <span>2000th Dance-Mix</span>
-  </a>
+    </div>
+  </details>
 
 
-  <!-- 2000th RADIO-MIX -->
+  <!-- 2010er JAHRE -->
 
-  <a href="/KanalRadioAmelsDaily/2000th_radio/"
-     style="display: grid;
-            grid-template-columns: 32px 1fr;
-            align-items: center;
-            column-gap: 10px;">
+  <details class="menu-decade">
+    <summary>
+      <span style="color: #facc15; font-size: 24px;">♫</span>
+      <span>2010er Jahre</span>
+      <span class="menu-arrow" aria-hidden="true"></span>
+    </summary>
 
-    <!-- Gelbes Radio -->
+    <div class="menu-submenu">
 
-    <svg width="28"
-         height="28"
-         viewBox="0 0 24 24"
-         fill="none"
-         stroke="#facc15"
-         stroke-width="2"
-         stroke-linecap="round"
-         stroke-linejoin="round"
-         aria-hidden="true">
+      <a href="/KanalRadioAmelsDaily/2010th_dance/">
+        <!-- Gelber Tänzer -->
+        <svg width="28" height="28"
+             viewBox="0 0 24 24" fill="none"
+             stroke="#facc15" stroke-width="2"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             aria-hidden="true">
+          <circle cx="12" cy="4" r="2"/>
+          <path d="M12 6 L10 13 L15 16"/>
+          <path d="M11 8 L5 5 L3 2"/>
+          <path d="M11 9 L17 7 L21 10"/>
+          <path d="M10 13 L5 20"/>
+          <path d="M15 16 L20 21"/>
+        </svg>
+        <span>2010th Dance-Mix</span>
+      </a>
 
-      <rect x="3" y="7"
-            width="18"
-            height="13"
-            rx="2"/>
-      <path d="M5 7L17 3"/>
-      <circle cx="9" cy="14" r="3"/>
-      <path d="M15 12h3M15 16h3"/>
+      <a href="/KanalRadioAmelsDaily/2010th_radio/">
+        <!-- Gelbes Radio -->
+        <svg width="28" height="28"
+             viewBox="0 0 24 24" fill="none"
+             stroke="#facc15" stroke-width="2"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             aria-hidden="true">
+          <rect x="3" y="7" width="18" height="13" rx="2"/>
+          <path d="M5 7L17 3"/>
+          <circle cx="9" cy="14" r="3"/>
+          <path d="M15 12h3M15 16h3"/>
+        </svg>
+        <span>2010th Radio-Mix</span>
+      </a>
 
-    </svg>
-
-    <span>2000th Radio-Mix</span>
-  </a>
+    </div>
+  </details>
 
 </nav>
+
+<script>
+  // Immer nur ein Jahrzehnt gleichzeitig öffnen
+  document.querySelectorAll(
+    "#menu-dropdown .menu-decade"
+  ).forEach(function (decade) {
+
+    decade.addEventListener("toggle", function () {
+      if (!decade.open) return;
+
+      document.querySelectorAll(
+        "#menu-dropdown .menu-decade"
+      ).forEach(function (other) {
+        if (other !== decade) {
+          other.open = false;
+        }
+      });
+    });
+
+  });
+</script>
