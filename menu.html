@@ -6,6 +6,8 @@
      aria-label="Senderauswahl">
 
   <style>
+    /* Jahrzehnte */
+
     #menu-dropdown .menu-decade {
       width: 100%;
     }
@@ -18,11 +20,14 @@
       cursor: pointer;
       list-style: none;
       user-select: none;
+      color: #facc15;
     }
 
     #menu-dropdown .menu-decade > summary::-webkit-details-marker {
       display: none;
     }
+
+    /* Gelbe Aufklapppfeile */
 
     #menu-dropdown .menu-arrow {
       color: #facc15;
@@ -38,6 +43,8 @@
       content: "⌄";
     }
 
+    /* Untermenüs */
+
     #menu-dropdown .menu-submenu {
       padding-left: 16px;
     }
@@ -47,26 +54,39 @@
       grid-template-columns: 32px 1fr;
       align-items: center;
       column-gap: 10px;
+      color: #facc15;
     }
 
-    #menu-dropdown .menu-decade summary:hover,
-    #menu-dropdown .menu-submenu a:hover {
+    /* Daily und alle anderen Links */
+
+    #menu-dropdown > a {
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      align-items: center;
+      column-gap: 10px;
       color: #facc15;
+    }
+
+    /* Einheitlicher Hover-Effekt */
+
+    #menu-dropdown .menu-decade > summary:hover,
+    #menu-dropdown .menu-decade > summary:focus-visible,
+    #menu-dropdown .menu-submenu a:hover,
+    #menu-dropdown .menu-submenu a:focus-visible,
+    #menu-dropdown > a:hover,
+    #menu-dropdown > a:focus-visible {
+      background: #374151;
+      color: #facc15;
+      font-weight: bold;
     }
   </style>
 
   <!-- DAILY -->
 
-  <a href="/KanalRadioAmelsDaily/daily/"
-     style="display: grid;
-            grid-template-columns: 32px 1fr;
-            align-items: center;
-            column-gap: 10px;">
-
+  <a href="/KanalRadioAmelsDaily/daily/">
     <span style="color: #facc15; font-size: 24px;">
       ♫
     </span>
-
     <span>Daily New Songs</span>
   </a>
 
@@ -218,24 +238,3 @@
   </details>
 
 </nav>
-
-<script>
-  // Immer nur ein Jahrzehnt gleichzeitig öffnen
-  document.querySelectorAll(
-    "#menu-dropdown .menu-decade"
-  ).forEach(function (decade) {
-
-    decade.addEventListener("toggle", function () {
-      if (!decade.open) return;
-
-      document.querySelectorAll(
-        "#menu-dropdown .menu-decade"
-      ).forEach(function (other) {
-        if (other !== decade) {
-          other.open = false;
-        }
-      });
-    });
-
-  });
-</script>
