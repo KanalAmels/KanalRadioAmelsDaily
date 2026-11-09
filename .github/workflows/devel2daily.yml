@@ -1,1 +1,38 @@
 
+name: Devel nach Daily kopieren
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Devel auschecken
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Daily vollständig ersetzen
+        env:
+          GH_TOKEN: ${{ secrets.DAILY_SYNC_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "$GH_TOKEN" ]; then
+            echo "Fehler: Repository-Secret DAILY_SYNC_TOKEN fehlt."
+            exit 1
+          fi
+
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git remote add daily "https://x-access-token:${GH_TOKEN}@github.com/KanalAmels/KanalRadioAmelsDaily.git"
+
+          git push --force daily HEAD:refs/heads/main
+
