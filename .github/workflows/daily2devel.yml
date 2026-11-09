@@ -1,5 +1,5 @@
 
-name: Daily nach Devel kopieren
+name: Devel nach Daily kopieren
 
 on:
   workflow_dispatch:
@@ -12,26 +12,26 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Daily auschecken
+      - name: Devel auschecken
         uses: actions/checkout@v4
         with:
           persist-credentials: false
           fetch-depth: 1
 
-      - name: Devel vollständig ersetzen
+      - name: Daily vollständig ersetzen
         env:
-          GH_TOKEN: ${{ secrets.DEVEL_SYNC_TOKEN }}
+          GH_TOKEN: ${{ secrets.DAILY_SYNC_TOKEN }}
         run: |
           set -euo pipefail
 
           if [ -z "$GH_TOKEN" ]; then
-            echo "Fehler: Repository-Secret DEVEL_SYNC_TOKEN fehlt."
+            echo "Fehler: Repository-Secret DAILY_SYNC_TOKEN fehlt."
             exit 1
           fi
 
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git remote add devel "https://x-access-token:${GH_TOKEN}@github.com/KanalAmels/KanalRadioAmelsDevel.git"
+          git remote add daily "https://x-access-token:${GH_TOKEN}@github.com/KanalAmels/KanalRadioAmelsDaily.git"
 
-          git push --force devel HEAD:refs/heads/main
+          git push --force daily HEAD:refs/heads/main
