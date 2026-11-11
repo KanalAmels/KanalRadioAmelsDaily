@@ -3,107 +3,79 @@
 <html lang="de">
 
 <head>
-
-  <!-- Umami Besucherstatistik -->
-  <script defer src="https://cloud.umami.is/script.js"
-    data-website-id="0bcec99c-b0ab-4797-84eb-0e30cbcba35e"></script>
-
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <title>Kanal-Radio Amels Daily</title>
+  <title>Kanal-Radio Amels</title>
 
-  <!-- Zentrales Menü -->
-  <link rel="stylesheet" href="../menu.css">
-  <script src="../menu.js" defer></script>
+  <!-- Hintergrundfarbe sofort setzen -->
+  <meta name="theme-color" content="#111827">
 
-  <!-- Zentrales Design -->
-  <link rel="stylesheet" href="../style.css">
+  <style>
+    html {
+      background-color: #111827;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background-color: #111827;
+      color: #facc15;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    p {
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    a {
+      color: #facc15;
+      text-decoration: underline;
+    }
+
+    a:hover {
+      color: #fde047;
+    }
+  </style>
 
   <!-- Vorschau für WhatsApp und soziale Netzwerke -->
   <meta property="og:type" content="website">
+
   <meta property="og:title"
-        content="🎶 Kanal-Radio Amels Daily">
+        content="🎶 Kanal-Radio Amels">
+
   <meta property="og:description"
-        content="Dein Kanal-Radio – einschalten und Musik genießen!">
+        content="Deine Musik. Dein Kanal-Radio by Rudi Erkens...">
+
   <meta property="og:url"
-        content="https://kanalamels.github.io/KanalRadioAmelsDaily/daily/">
+        content="https://kanalamels.github.io/KanalRadioAmelsDaily/">
+
   <meta property="og:image"
-        content="https://kanalamels.github.io/KanalRadioAmelsDaily/daily/radiocover_daily.png">
-  <meta property="og:image:type" content="image/png">
+        content="https://kanalamels.github.io/KanalRadioAmelsDaily/radiocover_status.jpg">
+
+  <meta property="og:image:type" content="image/jpeg">
+
   <meta name="twitter:card" content="summary_large_image">
 
+  <!-- Automatische Weiterleitung zu Daily -->
+  <meta http-equiv="refresh" content="0; url=./daily/">
+
+  <link rel="canonical"
+        href="https://kanalamels.github.io/KanalRadioAmelsDaily/daily/">
 </head>
 
 <body>
-
-  <!-- Kopfzeile -->
-  <header>
-    <h1>Kanal-Radio Amels <span style="color: #facc15;">&#9835;</span> 😃👍</h1>
-    <div class="menu-container" id="menu-container"></div>
-  </header>
-
-  <!-- Titelbild -->
-  <img
-    class="cover"
-    id="daily-cover"
-    src="radiocover_daily.png"
-    alt="Kanal-Radio Amels Daily Titelbild"
-  >
-
-  <!-- YouTube-Player -->
-  <div class="player">
-    <div id="radio"></div>
-  </div>
-
-  <!-- Drei Buttons wie im ursprünglichen Design -->
-  <div class="controls">
-
-    <button id="previous" type="button">
-      ⏮️ Last
-    </button>
-
-    <button id="start" type="button">
-      ⏯️ Start
-    </button>
-
-    <button id="next" type="button">
-      ⏭️ Next
-    </button>
-
-  </div>
-
-  <!-- Spruch und YouTube-Link -->
-  <div class="footer">
-
-    <p class="tagline">
-      Deine Musik.<br>
-      Dein Kanal-Radio.
-    </p>
-
-    <a
-      class="youtube-button"
-      href="https://www.youtube.com/playlist?list=PLB3xDmwcoNoQ"
-      target="_blank"
-      rel="noopener noreferrer">
-      ▶ Auf YouTube öffnen
-    </a>
-
-  </div>
-
-  <!-- Konfiguration für Daily -->
-  <script>
-    window.radioConfig = {
-      kanal: "Daily",
-      playlist: "PLB3xDmwcoNoQ"
-    };
-  </script>
-
-  <!-- Zentrale Radiosteuerung -->
-  <script src="../radio.js"></script>
-
-  <!-- YouTube-API -->
-  <script src="https://www.youtube.com/iframe_api"></script>
-
+  <p>
+    Du wirst zu Kanal-Radio Amels Daily weitergeleitet.
+    <a href="./daily/">Hier klicken, falls die Weiterleitung nicht funktioniert.</a>
+  </p>
 </body>
+
 </html>
