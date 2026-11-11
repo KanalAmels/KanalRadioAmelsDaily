@@ -58,9 +58,9 @@
   <!-- Steuerung -->
 
   <div class="controls">
-    <button id="previous" type="button">⏮ Last</button>
-    <button id="start" type="button">▶ Start</button>
-    <button id="next" type="button">⏭ Next</button>
+    <button id="previous" type="button">⏮️ Last</button>
+    <button id="start" type="button">⏯️ Start</button>
+    <button id="next" type="button">⏭️ Next</button>
   </div>
 
   <!-- Spruch und YouTube-Link -->
@@ -82,56 +82,19 @@
 
   </div>
 
-  <!-- YouTube-API -->
-
-  <script src="https://www.youtube.com/iframe_api"></script>
-
+  <!-- Kanalkonfiguration -->
   <script>
-    let player;
-    let playerReady = false;
-
-    function onYouTubeIframeAPIReady() {
-      player = new YT.Player("radio", {
-        width: "100%",
-        height: "100%",
-        playerVars: {
-          listType: "playlist",
-          list: "PLEi-YU-8ROTg",
-          playsinline: 1,
-          rel: 0
-        },
-        events: {
-          onReady: function () {
-            playerReady = true;
-          }
-        }
-      });
-    }
-
-    function control(action) {
-      if (!playerReady) {
-        alert("Der Player lädt noch. Bitte erneut versuchen.");
-        return;
-      }
-
-      player[action]();
-    }
-
-    document.getElementById("start")
-      .addEventListener("click", function () {
-        control("playVideo");
-      });
-
-    document.getElementById("previous")
-      .addEventListener("click", function () {
-        control("previousVideo");
-      });
-
-    document.getElementById("next")
-      .addEventListener("click", function () {
-        control("nextVideo");
-      });
+    window.radioConfig = {
+      kanal: "1990Th Dance",
+      playlist: "PLEi-YU-8ROTg"
+    };
   </script>
+
+  <!-- Zentrale Radiosteuerung -->
+  <script src="../radio.js"></script>
+
+  <!-- YouTube-API -->
+  <script src="https://www.youtube.com/iframe_api"></script>
 
 </body>
 </html>
