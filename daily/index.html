@@ -1,10 +1,13 @@
+
 <!DOCTYPE html>
 <html lang="de">
 
 <head>
 
-  <script defer src="https://cloud.umami.is/script.js" data-website-id="0bcec99c-b0ab-4797-84eb-0e30cbcba35e"></script>
-  
+  <!-- Umami Besucherstatistik -->
+  <script defer src="https://cloud.umami.is/script.js"
+    data-website-id="0bcec99c-b0ab-4797-84eb-0e30cbcba35e"></script>
+
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
@@ -14,9 +17,10 @@
   <link rel="stylesheet" href="../menu.css">
   <script src="../menu.js" defer></script>
 
+  <!-- Zentrales Design -->
   <link rel="stylesheet" href="../style.css">
-  <!-- Vorschau für WhatsApp und soziale Netzwerke -->
 
+  <!-- Vorschau für WhatsApp und soziale Netzwerke -->
   <meta property="og:type" content="website">
   <meta property="og:title"
         content="🎶 Kanal-Radio Amels Daily">
@@ -34,16 +38,12 @@
 <body>
 
   <!-- Kopfzeile -->
-
   <header>
     <h1>Kanal-Radio Amels <span style="color: #facc15;">&#9835;</span> 😃👍</h1>
-
-    <!-- Das Menü wird zentral geladen -->
     <div class="menu-container" id="menu-container"></div>
   </header>
 
   <!-- Titelbild -->
-
   <img
     class="cover"
     id="daily-cover"
@@ -52,21 +52,28 @@
   >
 
   <!-- YouTube-Player -->
-
   <div class="player">
     <div id="radio"></div>
   </div>
 
-  <!-- Steuerung -->
-
+  <!-- Drei Buttons wie im ursprünglichen Design -->
   <div class="controls">
-    <button id="previous" type="button">⏮ Last</button>
-    <button id="start" type="button">▶ Start</button>
-    <button id="next" type="button">⏭ Next</button>
+
+    <button id="previous" type="button">
+      ⏮️ Last
+    </button>
+
+    <button id="start" type="button">
+      ⏯️ Start
+    </button>
+
+    <button id="next" type="button">
+      ⏭️ Next
+    </button>
+
   </div>
 
   <!-- Spruch und YouTube-Link -->
-
   <div class="footer">
 
     <p class="tagline">
@@ -84,76 +91,19 @@
 
   </div>
 
-  <!-- YouTube-API -->
-
-  <script src="https://www.youtube.com/iframe_api"></script>
-
+  <!-- Konfiguration für Daily -->
   <script>
-    let player;
-    let playerReady = false;
-
-
-    function onYouTubeIframeAPIReady() {
-      player = new YT.Player("radio", {
-        width: "100%",
-        height: "100%",
-        playerVars: {
-          listType: "playlist",
-          list: "PLB3xDmwcoNoQ",
-          playsinline: 1,
-          rel: 0
-        },
-        events: {
-          onReady: function () {
-            playerReady = true;
-          },
-          onStateChange: function (event) {
-            if (event.data === YT.PlayerState.PLAYING) {
-              const video = player.getVideoData();
-    
-              if (typeof window.umami !== "undefined") {
-                window.umami.track("song_start", {
-                  kanal: "Daily",
-                  video_id: video.video_id,
-                  titel: video.title
-                });
-              }
-            }
-          }
-        }
-      });
-    }
-
-
-    function control(action) {
-      if (!playerReady) {
-        alert("Der Player lädt noch. Bitte erneut versuchen.");
-        return;
-      }
-
-      player[action]();
-    }
-
-    document.getElementById("start")
-      .addEventListener("click", function () {
-        control("playVideo");
-      });
-
-    document.getElementById("previous")
-      .addEventListener("click", function () {
-        control("previousVideo");
-      });
-
-    document.getElementById("next")
-      .addEventListener("click", function () {
-        control("nextVideo");
-      });
-
-    // Daily-Cover bei jedem Seitenaufruf frisch laden
-    document.getElementById("daily-cover").src =
-      "radiocover_daily.png?t=" + Date.now();
-
+    window.radioConfig = {
+      kanal: "Daily",
+      playlist: "PLB3xDmwcoNoQ"
+    };
   </script>
+
+  <!-- Zentrale Radiosteuerung -->
+  <script src="../radio.js"></script>
+
+  <!-- YouTube-API -->
+  <script src="https://www.youtube.com/iframe_api"></script>
 
 </body>
 </html>
