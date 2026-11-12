@@ -3,9 +3,10 @@
  * Kanal-Radio Amels
  * Zentrale Radiosteuerung und Songstatistik
  *
- * Experiment 4:
- * Werbung pausieren und fortsetzen.
- * Buttonanzeige passend umschalten.
+ * Version 5:
+ * - Werbung pausieren und fortsetzen
+ * - Buttonanzeige passend umschalten
+ * - Beim ersten Startklick sofort "Pause" anzeigen
  */
 
 let player;
@@ -16,6 +17,9 @@ let hasPlaybackStarted = false;
 // Zustand unserer Werbesteuerung
 let adPausedByUs = false;
 let adPlaybackStartedByUs = false;
+
+// Merkt sich den ersten Startklick
+let initialStartRequested = false;
 
 const startButton = document.getElementById("start");
 
@@ -32,7 +36,10 @@ function updateStartButton(state) {
         if (adPausedByUs) {
             label = "Start";
             symbol = "▶️";
-        } else if (adPlaybackStartedByUs) {
+        } else if (
+            adPlaybackStartedByUs ||
+            initialStartRequested
+        ) {
             label = "Pause";
             symbol = "⏸️";
         } else {
@@ -51,13 +58,17 @@ function updateStartButton(state) {
         label = "Start";
         symbol = "▶️";
 
+    } else if (!hasPlaybackStarted && initialStartRequested) {
+        // Auch während CUED oder BUFFERING
+        // nach dem Startklick Pause anzeigen.
+        label = "Pause";
+        symbol = "⏸️";
+
     } else if (!hasPlaybackStarted) {
         label = "Start";
         symbol = "⏯️";
 
     } else {
-        // Bei BUFFERING oder CUED die bisherige
-        // Anzeige nicht unnötig verändern.
         return;
     }
 
@@ -94,15 +105,15 @@ function onYouTubeIframeAPIReady() {
 
             onStateChange: function (event) {
                 console.log(
-                    "[KanalRadio Diagnose 4] Statuswechsel:",
+                    "[KanalRadio Diagnose 5] Statuswechsel:",
                     describePlayerState(event.data),
                     "(", event.data, ")"
                 );
 
                 if (event.data === YT.PlayerState.PLAYING) {
                     hasPlaybackStarted = true;
+                    initialStartRequested = true;
 
-                    // Reguläre Wiedergabe übernimmt.
                     adPausedByUs = false;
                     adPlaybackStartedByUs = false;
                 }
@@ -110,6 +121,7 @@ function onYouTubeIframeAPIReady() {
                 if (event.data === YT.PlayerState.ENDED) {
                     adPausedByUs = false;
                     adPlaybackStartedByUs = false;
+                    initialStartRequested = false;
                 }
 
                 updateStartButton(event.data);
@@ -134,8 +146,6 @@ function onYouTubeIframeAPIReady() {
                     }
                 }
 
-                // Nach vollständigem Songende darf
-                // derselbe Song erneut gezählt werden.
                 if (event.data === YT.PlayerState.ENDED) {
                     lastTrackedVideoId = null;
                 }
@@ -169,7 +179,7 @@ function togglePlayback() {
     let action;
 
     console.group(
-        "[KanalRadio Diagnose 4] Taste gedrückt"
+        "[KanalRadio Diagnose 5] Taste gedrückt"
     );
 
     console.log(
@@ -182,22 +192,24 @@ function togglePlayback() {
         "Werbung pausiert:",
         adPausedByUs,
         "| Werbung gestartet:",
-        adPlaybackStartedByUs
+        adPlaybackStartedByUs,
+        "| Start angefordert:",
+        initialStartRequested
     );
 
     if (before === -1) {
-        // Während Werbung den eigenen Zustand
-        // zum Umschalten verwenden.
-
         if (adPausedByUs) {
+            // Werbung fortsetzen
             action = "playVideo";
 
             player.playVideo();
 
             adPausedByUs = false;
             adPlaybackStartedByUs = true;
+            initialStartRequested = true;
 
         } else {
+            // Werbung pausieren
             action = "pauseVideo";
 
             player.pauseVideo();
@@ -221,13 +233,14 @@ function togglePlayback() {
 
         adPausedByUs = false;
         adPlaybackStartedByUs = false;
+        initialStartRequested = true;
 
         player.playVideo();
     }
 
     const immediately = player.getPlayerState();
 
-    // Nach unserer Aktion die Anzeige aktualisieren.
+    // Anzeige sofort nach dem Tastendruck aktualisieren
     updateStartButton(immediately);
 
     console.log("Ausgeführter Befehl:", action);
@@ -238,23 +251,15 @@ function togglePlayback() {
         "(", immediately, ")"
     );
 
-    console.log(
-        "Werbung pausiert:",
-        adPausedByUs,
-        "| Werbung gestartet:",
-        adPlaybackStartedByUs
-    );
-
     console.groupEnd();
 
-    // Kontrollmessung nach einer Sekunde
     setTimeout(function () {
         if (!playerReady) return;
 
         const later = player.getPlayerState();
 
         console.log(
-            "[KanalRadio Diagnose 4] 1 Sekunde nach",
+            "[KanalRadio Diagnose 5] 1 Sekunde nach",
             action + ":",
             describePlayerState(later),
             "(", later, ")"
@@ -292,6 +297,7 @@ function jumpSongs(offset) {
 
     adPausedByUs = false;
     adPlaybackStartedByUs = false;
+    initialStartRequested = true;
 
     player.playVideoAt(targetIndex);
 }
