@@ -1,13 +1,20 @@
+
 /*
  * Kanal-Radio Amels
  * Zentrale Radiosteuerung und Songstatistik
- * Experiment 2: pauseVideo() auch bei UNSTARTED (-1) testen.
+ *
+ * Experiment 3:
+ * Werbung über unseren Start-/Pause-Button
+ * pausieren UND wieder starten.
  */
 
 let player;
 let playerReady = false;
 let lastTrackedVideoId = null;
 let hasPlaybackStarted = false;
+
+// Merkt sich, ob wir die Werbung pausiert haben.
+let adPausedByUs = false;
 
 const startButton = document.getElementById("start");
 
@@ -24,6 +31,12 @@ function updateStartButton(state) {
         state === YT.PlayerState.PAUSED ||
         state === YT.PlayerState.ENDED
     ) {
+        startButton.textContent = "▶️ Start";
+        startButton.setAttribute("aria-label", "Start");
+        startButton.title = "Start";
+
+    } else if (state === -1 && adPausedByUs) {
+        // Werbung wurde über unseren Button pausiert.
         startButton.textContent = "▶️ Start";
         startButton.setAttribute("aria-label", "Start");
         startButton.title = "Start";
@@ -70,6 +83,14 @@ function onYouTubeIframeAPIReady() {
 
                 if (event.data === YT.PlayerState.PLAYING) {
                     hasPlaybackStarted = true;
+
+                    // Normale Wiedergabe läuft.
+                    // Die Werbe-Pausenmarkierung zurücksetzen.
+                    adPausedByUs = false;
+                }
+
+                if (event.data === YT.PlayerState.ENDED) {
+                    adPausedByUs = false;
                 }
 
                 updateStartButton(event.data);
@@ -126,56 +147,96 @@ function togglePlayback() {
     }
 
     const before = player.getPlayerState();
-
-    // EXPERIMENT 2:
-    // Auch bei UNSTARTED (-1) versuchen wir zu pausieren.
-    const shouldPause =
-        before === YT.PlayerState.PLAYING ||
-        before === -1;
-
-    const action = shouldPause ? "pauseVideo" : "playVideo";
+    let action;
 
     console.group(
-        "[KanalRadio Diagnose 2] Taste gedrückt:",
-        action
+        "[KanalRadio Diagnose 3] Taste gedrückt"
     );
 
     console.log(
-        "Vorher:",
+        "Status vorher:",
         describePlayerState(before),
         "(", before, ")"
     );
 
-    if (before === -1) {
-        console.log("TEST: Pausenbefehl trotz UNSTARTED (-1)");
-    }
+    console.log(
+        "Werbung von uns pausiert:",
+        adPausedByUs
+    );
 
-    if (shouldPause) {
+    if (before === -1) {
+        // EXPERIMENT 3:
+        // YouTube meldet UNSTARTED während Werbung.
+        // Wir wechseln mit unserer booleschen Variable
+        // zwischen Pause und Start.
+
+        if (adPausedByUs) {
+            action = "playVideo";
+
+            console.log(
+                "TEST: Werbung über eigenen Button fortsetzen"
+            );
+
+            player.playVideo();
+            adPausedByUs = false;
+
+        } else {
+            action = "pauseVideo";
+
+            console.log(
+                "TEST: Werbung über eigenen Button pausieren"
+            );
+
+            player.pauseVideo();
+            adPausedByUs = true;
+        }
+
+    } else if (before === YT.PlayerState.PLAYING) {
+        // Normales Video pausieren
+        action = "pauseVideo";
+        adPausedByUs = false;
         player.pauseVideo();
+
     } else {
+        // Normales Video starten oder fortsetzen
+        action = "playVideo";
+        adPausedByUs = false;
         player.playVideo();
     }
 
+    // Button nach unserer Aktion aktualisieren
+    updateStartButton(player.getPlayerState());
+
     const immediately = player.getPlayerState();
 
+    console.log("Ausgeführter Befehl:", action);
+
     console.log(
-        "Direkt danach:",
+        "Status direkt danach:",
         describePlayerState(immediately),
         "(", immediately, ")"
     );
 
+    console.log(
+        "Werbung von uns pausiert:",
+        adPausedByUs
+    );
+
     console.groupEnd();
 
+    // Kontrollmessung nach einer Sekunde
     setTimeout(function () {
         if (!playerReady) return;
 
         const later = player.getPlayerState();
 
         console.log(
-            "[KanalRadio Diagnose 2] 1 Sekunde nach",
+            "[KanalRadio Diagnose 3] 1 Sekunde nach",
             action + ":",
             describePlayerState(later),
-            "(", later, ")"
+            "(", later, ")",
+            "| adPausedByUs:",
+            adPausedByUs
         );
     }, 1000);
 }
@@ -207,6 +268,9 @@ function jumpSongs(offset) {
     if (targetIndex === currentIndex) {
         return;
     }
+
+    // Beim Songwechsel Werbemarkierung zurücksetzen
+    adPausedByUs = false;
 
     player.playVideoAt(targetIndex);
 }
