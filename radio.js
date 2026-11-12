@@ -71,6 +71,10 @@ function onYouTubeIframeAPIReady() {
 
       onStateChange: function (event) {
 
+        // Diagnose: YouTube meldet einen neuen Wiedergabestatus.
+        console.log("[KanalRadio Diagnose] Statuswechsel:",
+          describePlayerState(event.data), "(", event.data, ")");
+
         if (event.data === YT.PlayerState.PLAYING) {
           hasPlaybackStarted = true;
         }
@@ -110,6 +114,19 @@ function onYouTubeIframeAPIReady() {
 }
 
 
+// Diagnosehilfe: numerischen YouTube-Status lesbar darstellen.
+function describePlayerState(state) {
+  const names = {
+    [-1]: "UNSTARTED",
+    [YT.PlayerState.ENDED]: "ENDED",
+    [YT.PlayerState.PLAYING]: "PLAYING",
+    [YT.PlayerState.PAUSED]: "PAUSED",
+    [YT.PlayerState.BUFFERING]: "BUFFERING",
+    [YT.PlayerState.CUED]: "CUED"
+  };
+  return names[state] || "UNKNOWN";
+}
+
 // Start / Pause / Weiter
 function togglePlayback() {
 
@@ -118,11 +135,27 @@ function togglePlayback() {
     return;
   }
 
-  if (player.getPlayerState() === YT.PlayerState.PLAYING) {
+  const before = player.getPlayerState();
+  const action = before === YT.PlayerState.PLAYING ? "pauseVideo" : "playVideo";
+  console.group("[KanalRadio Diagnose] Taste gedrückt:", action);
+  console.log("Vorher:", describePlayerState(before), "(", before, ")");
+
+  if (before === YT.PlayerState.PLAYING) {
     player.pauseVideo();
   } else {
     player.playVideo();
   }
+
+  const immediately = player.getPlayerState();
+  console.log("Direkt danach:", describePlayerState(immediately), "(", immediately, ")");
+  console.groupEnd();
+
+  setTimeout(function () {
+    if (!playerReady) return;
+    const later = player.getPlayerState();
+    console.log("[KanalRadio Diagnose] 1 Sekunde nach", action + ":",
+      describePlayerState(later), "(", later, ")");
+  }, 1000);
 }
 
 
