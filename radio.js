@@ -1,7 +1,7 @@
 /*
  * Kanal-Radio Amels
  * Zentrale Radiosteuerung und Songstatistik
- * Experiment 2: pauseVideo() auch bei UNSTARTED testen.
+ * Experiment 2: pauseVideo() auch bei UNSTARTED (-1) testen.
  */
 
 let player;
@@ -11,6 +11,7 @@ let hasPlaybackStarted = false;
 
 const startButton = document.getElementById("start");
 
+// Start-/Pause-Button aktualisieren
 function updateStartButton(state) {
     if (!startButton) return;
 
@@ -18,6 +19,7 @@ function updateStartButton(state) {
         startButton.textContent = "⏸️ Pause";
         startButton.setAttribute("aria-label", "Pause");
         startButton.title = "Pause";
+
     } else if (
         state === YT.PlayerState.PAUSED ||
         state === YT.PlayerState.ENDED
@@ -25,6 +27,7 @@ function updateStartButton(state) {
         startButton.textContent = "▶️ Start";
         startButton.setAttribute("aria-label", "Start");
         startButton.title = "Start";
+
     } else if (!hasPlaybackStarted) {
         startButton.textContent = "⏯️ Start";
         startButton.setAttribute("aria-label", "Start");
@@ -32,6 +35,7 @@ function updateStartButton(state) {
     }
 }
 
+// YouTube-Player initialisieren
 function onYouTubeIframeAPIReady() {
     const config = window.radioConfig;
 
@@ -43,17 +47,20 @@ function onYouTubeIframeAPIReady() {
     player = new YT.Player("radio", {
         width: "100%",
         height: "100%",
+
         playerVars: {
             listType: "playlist",
             list: config.playlist,
             playsinline: 1,
             rel: 0
         },
+
         events: {
             onReady: function () {
                 playerReady = true;
                 updateStartButton(player.getPlayerState());
             },
+
             onStateChange: function (event) {
                 console.log(
                     "[KanalRadio Diagnose] Statuswechsel:",
@@ -67,10 +74,14 @@ function onYouTubeIframeAPIReady() {
 
                 updateStartButton(event.data);
 
+                // Songstart an Umami melden
                 if (event.data === YT.PlayerState.PLAYING) {
                     const video = event.target.getVideoData();
 
-                    if (video.video_id && video.video_id !== lastTrackedVideoId) {
+                    if (
+                        video.video_id &&
+                        video.video_id !== lastTrackedVideoId
+                    ) {
                         lastTrackedVideoId = video.video_id;
 
                         if (typeof window.umami !== "undefined") {
@@ -83,6 +94,8 @@ function onYouTubeIframeAPIReady() {
                     }
                 }
 
+                // Nach vollständigem Songende darf
+                // derselbe Song erneut gezählt werden.
                 if (event.data === YT.PlayerState.ENDED) {
                     lastTrackedVideoId = null;
                 }
@@ -91,6 +104,7 @@ function onYouTubeIframeAPIReady() {
     });
 }
 
+// Numerischen YouTube-Status lesbar darstellen
 function describePlayerState(state) {
     const names = {
         [-1]: "UNSTARTED",
@@ -100,9 +114,11 @@ function describePlayerState(state) {
         [YT.PlayerState.BUFFERING]: "BUFFERING",
         [YT.PlayerState.CUED]: "CUED"
     };
+
     return names[state] || "UNKNOWN";
 }
 
+// Start / Pause
 function togglePlayback() {
     if (!playerReady) {
         alert("Der Player lädt noch. Bitte erneut versuchen.");
@@ -110,16 +126,28 @@ function togglePlayback() {
     }
 
     const before = player.getPlayerState();
+
+    // EXPERIMENT 2:
+    // Auch bei UNSTARTED (-1) versuchen wir zu pausieren.
     const shouldPause =
         before === YT.PlayerState.PLAYING ||
-        before === YT.PlayerState.UNSTARTED;
+        before === -1;
+
     const action = shouldPause ? "pauseVideo" : "playVideo";
 
-    console.group("[KanalRadio Diagnose 2] Taste gedrückt:", action);
-    console.log("Vorher:", describePlayerState(before), "(", before, ")");
+    console.group(
+        "[KanalRadio Diagnose 2] Taste gedrückt:",
+        action
+    );
 
-    if (before === YT.PlayerState.UNSTARTED) {
-        console.log("TEST: Pausenbefehl trotz UNSTARTED");
+    console.log(
+        "Vorher:",
+        describePlayerState(before),
+        "(", before, ")"
+    );
+
+    if (before === -1) {
+        console.log("TEST: Pausenbefehl trotz UNSTARTED (-1)");
     }
 
     if (shouldPause) {
@@ -129,23 +157,30 @@ function togglePlayback() {
     }
 
     const immediately = player.getPlayerState();
+
     console.log(
         "Direkt danach:",
         describePlayerState(immediately),
         "(", immediately, ")"
     );
+
     console.groupEnd();
 
     setTimeout(function () {
         if (!playerReady) return;
+
         const later = player.getPlayerState();
+
         console.log(
-            "[KanalRadio Diagnose 2] 1 Sekunde nach", action + ":",
-            describePlayerState(later), "(", later, ")"
+            "[KanalRadio Diagnose 2] 1 Sekunde nach",
+            action + ":",
+            describePlayerState(later),
+            "(", later, ")"
         );
     }, 1000);
 }
 
+// Einen Song vor oder zurück
 function jumpSongs(offset) {
     if (!playerReady) {
         alert("Der Player lädt noch. Bitte erneut versuchen.");
@@ -155,7 +190,11 @@ function jumpSongs(offset) {
     const playlist = player.getPlaylist();
     const currentIndex = player.getPlaylistIndex();
 
-    if (!playlist || playlist.length === 0 || currentIndex < 0) {
+    if (
+        !playlist ||
+        playlist.length === 0 ||
+        currentIndex < 0
+    ) {
         alert("Die Playlist ist noch nicht bereit.");
         return;
     }
@@ -165,12 +204,17 @@ function jumpSongs(offset) {
         Math.min(playlist.length - 1, currentIndex + offset)
     );
 
-    if (targetIndex === currentIndex) return;
+    if (targetIndex === currentIndex) {
+        return;
+    }
+
     player.playVideoAt(targetIndex);
 }
 
+// Drei Buttons verbinden
 if (startButton) {
     startButton.addEventListener("click", togglePlayback);
+
     startButton.textContent = "⏯️ Start";
     startButton.setAttribute("aria-label", "Start");
     startButton.title = "Start";
@@ -191,9 +235,12 @@ if (nextButton) {
     });
 }
 
+// Coverbild bei jedem Seitenaufruf frisch laden
 const cover = document.querySelector(".cover");
+
 if (cover) {
     const coverUrl = cover.getAttribute("src");
+
     if (coverUrl) {
         cover.src = coverUrl.split("?")[0] + "?t=" + Date.now();
     }
