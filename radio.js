@@ -7,7 +7,7 @@
  * - Künstlerkorrekturen aus artists.json
  * - VEVO / Topic / Topik / Thema entfernen
  * - Künstler aus Videotiteln erkennen:
- *   " - ", " – ", " | "
+ *   " - ", "- ", " – ", " | "
  * - Klammerzusätze entfernen, außer Mix und Live
  * - Bestehende Player- und Werbesteuerung
  * - Umami-Songstatistik mit Originaltitel
@@ -146,9 +146,11 @@ function cleanSongTitle(title) {
 
 // Erkennen, ob der Titel bereits Interpret und Song enthält
 function splitArtistAndSong(title) {
-    // Nur Trennzeichen mit Leerzeichen davor und danach
+    // Bindestrich mit Leerzeichen danach genügt.
+    // Gedankenstrich und senkrechter Strich
+    // benötigen weiterhin Leerzeichen auf beiden Seiten.
     const match = title.match(
-        /^(.+?)\s(?:-|–|\|)\s(.+)$/
+        /^(.+?)(?:\s*-\s+|\s+–\s+|\s+\|\s+)(.+)$/
     );
 
     if (!match) return null;
