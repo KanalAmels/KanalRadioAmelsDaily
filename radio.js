@@ -36,14 +36,29 @@ if (radioPlayerContainer) {
     radioPlayerContainer.insertAdjacentElement("afterend", videoTitleElement);
 }
 
+// Bei einem manuellen Songwechsel darf nicht der alte Titel erscheinen.
+let waitingForNewVideoId = null;
+
 function updateVideoTitle() {
     if (!videoTitleElement || !playerReady || !player) return;
 
     const video = player.getVideoData();
-    if (video && video.title) {
+    if (!video || !video.title) return;
+
+    // Nach Last/Next erst den Titel des tatsächlich neuen Videos anzeigen.
+    if (waitingForNewVideoId !== null) {
+        if (!video.video_id || video.video_id === waitingForNewVideoId) return;
+        waitingForNewVideoId = null;
+    }
+
+    if (videoTitleElement.textContent !== video.title) {
         videoTitleElement.textContent = video.title;
     }
 }
+
+// Auch bei UNSTARTED/BUFFERING und während der Werbung nachsehen.
+// YouTube liefert den Musiktitel nicht in jeder Werbephase zuverlässig.
+const videoTitleCheck = setInterval(updateVideoTitle, 1000);
 
 const startButton = document.getElementById("start");
 
@@ -125,6 +140,7 @@ function onYouTubeIframeAPIReady() {
             onReady: function () {
                 playerReady = true;
                 updateStartButton(player.getPlayerState());
+                updateVideoTitle();
             },
 
             onStateChange: function (event) {
@@ -150,13 +166,8 @@ function onYouTubeIframeAPIReady() {
 
                 updateStartButton(event.data);
 
-                // Titelanzeige unabhängig vom Umami-Tracking aktualisieren
-                if (event.data === YT.PlayerState.PLAYING) {
-                    updateVideoTitle();
-                    // YouTube liefert den Titel gelegentlich verzögert.
-                    setTimeout(updateVideoTitle, 500);
-                    setTimeout(updateVideoTitle, 1500);
-                }
+                // Titelanzeige bei jedem Statuswechsel prüfen, auch bei Werbung.
+                updateVideoTitle();
 
                 // Songstart an Umami melden
                 if (event.data === YT.PlayerState.PLAYING) {
@@ -330,6 +341,13 @@ function jumpSongs(offset) {
     adPausedByUs = false;
     adPlaybackStartedByUs = false;
     initialStartRequested = true;
+
+    // Den bisherigen Titel sofort ausblenden, bis YouTube den neuen liefert.
+    const oldVideo = player.getVideoData();
+    waitingForNewVideoId = oldVideo && oldVideo.video_id
+        ? oldVideo.video_id
+        : null;
+    if (videoTitleElement) videoTitleElement.textContent = "";
 
     player.playVideoAt(targetIndex);
 }
