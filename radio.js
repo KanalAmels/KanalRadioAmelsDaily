@@ -3,7 +3,8 @@
  * Kanal-Radio Amels
  * Zentrale Radiosteuerung und Songstatistik
  *
- * - Titelanzeige unter dem Player
+ * - Titelanzeige in Kanal-Radio-Goldgelb (#facc15)
+ * - Intelligente Groß-/Kleinschreibung
  * - Künstlerkorrekturen aus artists.json
  * - VEVO / Topic / Topik / Thema entfernen
  * - Künstler aus Videotiteln erkennen:
@@ -33,7 +34,7 @@ if (radioPlayerContainer) {
     videoTitleElement.setAttribute("aria-live", "polite");
     videoTitleElement.style.cssText =
         "text-align:center;max-width:100%;margin:12px auto 16px;" +
-        "padding:0 12px;color:inherit;font-weight:600;" +
+        "padding:0 12px;color:#facc15;font-weight:600;" +
         "overflow-wrap:anywhere;";
 
     radioPlayerContainer.insertAdjacentElement(
@@ -127,6 +128,73 @@ function correctArtistName(author) {
     return cleaned;
 }
 
+// Bekannte Eigenschreibweisen erhalten.
+// Die Liste kann bei Bedarf ergänzt werden.
+const protectedCapitalization = {
+    "ABBA": "ABBA",
+    "AC/DC": "AC/DC",
+    "R.E.M.": "R.E.M.",
+    "DJ": "DJ",
+    "USA": "USA",
+    "UK": "UK",
+    "U2": "U2",
+    "UB40": "UB40",
+    "BAP": "BAP",
+    "NENA": "Nena"
+};
+
+// Prüfen, ob ein Text vollständig großgeschrieben ist.
+// Zahlen und Satzzeichen spielen dabei keine Rolle.
+function isAllUppercase(value) {
+    const letters = value.match(/\p{L}/gu);
+
+    if (!letters || letters.length === 0) {
+        return false;
+    }
+
+    return value === value.toLocaleUpperCase("de-DE");
+}
+
+// Einzelne Wörter lesbar formatieren.
+// Apostrophe und Bindestriche innerhalb von Wörtern
+// werden berücksichtigt.
+function capitalizeWord(word) {
+    const protectedWord =
+        protectedCapitalization[word.toLocaleUpperCase("de-DE")];
+
+    if (protectedWord) {
+        return protectedWord;
+    }
+
+    const lower = word.toLocaleLowerCase("de-DE");
+
+    return lower.replace(
+        /(^|[-'’])(\p{L})/gu,
+        function (match, separator, letter) {
+            return separator + letter.toLocaleUpperCase("de-DE");
+        }
+    );
+}
+
+// Nur komplett großgeschriebene Textteile umwandeln.
+// Bereits gemischte Schreibweisen bleiben unverändert.
+function normalizeCapitalization(value) {
+    if (!value || !isAllUppercase(value)) {
+        return value;
+    }
+
+    return value
+        .split(/(\s+)/)
+        .map(function (part) {
+            if (/^\s+$/.test(part)) {
+                return part;
+            }
+
+            return capitalizeWord(part);
+        })
+        .join("");
+}
+
 // Klammerzusätze entfernen, außer Mix oder Live
 function cleanSongTitle(title) {
     if (!title) return "";
@@ -148,7 +216,7 @@ function cleanSongTitle(title) {
 function splitArtistAndSong(title) {
     // Bindestrich mit Leerzeichen danach genügt.
     // Gedankenstrich und senkrechter Strich
-    // benötigen weiterhin Leerzeichen auf beiden Seiten.
+    // benötigen Leerzeichen auf beiden Seiten.
     const match = title.match(
         /^(.+?)(?:\s*-\s+|\s+–\s+|\s+\|\s+)(.+)$/
     );
@@ -177,17 +245,31 @@ function formatVideoTitle(video) {
     const parsed = splitArtistAndSong(title);
 
     if (parsed) {
-        const titleArtist = correctArtistName(parsed.artist);
+        const titleArtist = normalizeCapitalization(
+            correctArtistName(parsed.artist)
+        );
 
-        return titleArtist + " – " + parsed.song;
+        const songTitle = normalizeCapitalization(
+            parsed.song
+        );
+
+        return titleArtist + " – " + songTitle;
     }
 
     // 2. Kein Interpret im Titel erkennbar
-    if (!channelArtist) return title;
+    const songTitle = normalizeCapitalization(title);
+
+    if (!channelArtist) return songTitle;
+
+    const formattedArtist = normalizeCapitalization(
+        channelArtist
+    );
 
     // Doppelte Künstlernennung verhindern
-    const normalizedTitle = normalizeArtistName(title);
-    const normalizedArtist = normalizeArtistName(channelArtist);
+    const normalizedTitle = normalizeArtistName(songTitle);
+    const normalizedArtist = normalizeArtistName(
+        formattedArtist
+    );
 
     const position = normalizedTitle.indexOf(
         normalizedArtist
@@ -208,11 +290,11 @@ function formatVideoTitle(video) {
             !/^[\p{L}\p{N}]/u.test(after);
 
         if (beforeBoundary && afterBoundary) {
-            return title;
+            return songTitle;
         }
     }
 
-    return channelArtist + " – " + title;
+    return formattedArtist + " – " + songTitle;
 }
 
 // Titelwechsel überwachen
