@@ -7,6 +7,12 @@
  * - Werbung pausieren und fortsetzen
  * - Buttonanzeige passend umschalten
  * - Beim ersten Startklick sofort "Pause" anzeigen
+ *
+ * Erweiterung:
+ * - Original-YouTube-Titel unter dem Player
+ * - Titelprüfung auch während der Werbung
+ * - Playlist-Wechsel automatisch erkennen
+ * - Veraltete Songtitel vermeiden
  */
 
 let player;
@@ -21,7 +27,10 @@ let adPlaybackStartedByUs = false;
 // Merkt sich den ersten Startklick
 let initialStartRequested = false;
 
-// Original-YouTube-Titel unter dem Player für alle Sender anzeigen
+// --------------------------------------------------
+// TITELANZEIGE
+// --------------------------------------------------
+
 const radioPlayerContainer = document.querySelector(".player");
 let videoTitleElement = null;
 
@@ -29,40 +38,110 @@ if (radioPlayerContainer) {
     videoTitleElement = document.createElement("div");
     videoTitleElement.id = "radio-video-title";
     videoTitleElement.setAttribute("aria-live", "polite");
+
     videoTitleElement.style.cssText =
         "text-align:center;max-width:100%;margin:12px auto 16px;" +
         "padding:0 12px;color:inherit;font-weight:600;" +
         "overflow-wrap:anywhere;";
-    radioPlayerContainer.insertAdjacentElement("afterend", videoTitleElement);
+
+    radioPlayerContainer.insertAdjacentElement(
+        "afterend",
+        videoTitleElement
+    );
 }
 
-// Bei einem manuellen Songwechsel darf nicht der alte Titel erscheinen.
-let waitingForNewVideoId = null;
+// Zuletzt erkannte Playlist-Position und Video-ID
+let displayedPlaylistIndex = null;
+let displayedVideoId = null;
+
+// Nach einem Wechsel auf diese Video-ID warten
+let expectedVideoId = null;
+
+function clearVideoTitle() {
+    if (videoTitleElement) {
+        videoTitleElement.textContent = "";
+    }
+
+    displayedVideoId = null;
+}
 
 function updateVideoTitle() {
-    if (!videoTitleElement || !playerReady || !player) return;
+    if (!videoTitleElement || !playerReady || !player) {
+        return;
+    }
+
+    const playlist = player.getPlaylist();
+    const playlistIndex = player.getPlaylistIndex();
 
     const video = player.getVideoData();
-    if (!video || !video.title) return;
 
-    // Nach Last/Next erst den Titel des tatsächlich neuen Videos anzeigen.
-    if (waitingForNewVideoId !== null) {
-        if (!video.video_id || video.video_id === waitingForNewVideoId) return;
-        waitingForNewVideoId = null;
+    // Automatischen Playlist-Wechsel erkennen
+    if (
+        playlistIndex >= 0 &&
+        displayedPlaylistIndex !== null &&
+        playlistIndex !== displayedPlaylistIndex
+    ) {
+        clearVideoTitle();
+
+        if (
+            playlist &&
+            playlistIndex < playlist.length
+        ) {
+            expectedVideoId = playlist[playlistIndex];
+        }
     }
+
+    if (playlistIndex >= 0) {
+        displayedPlaylistIndex = playlistIndex;
+    }
+
+    // Bei bekanntem Playlist-Eintrag prüfen,
+    // ob YouTube bereits die passenden Videodaten liefert.
+    if (
+        playlist &&
+        playlistIndex >= 0 &&
+        playlistIndex < playlist.length
+    ) {
+        const playlistVideoId = playlist[playlistIndex];
+
+        if (
+            expectedVideoId === null &&
+            displayedVideoId !== playlistVideoId
+        ) {
+            expectedVideoId = playlistVideoId;
+        }
+    }
+
+    if (!video || !video.title || !video.video_id) {
+        return;
+    }
+
+    // Keine alten Videodaten anzeigen
+    if (
+        expectedVideoId !== null &&
+        video.video_id !== expectedVideoId
+    ) {
+        return;
+    }
+
+    // Titel erst anzeigen, wenn Video-ID passt
+    expectedVideoId = null;
+    displayedVideoId = video.video_id;
 
     if (videoTitleElement.textContent !== video.title) {
         videoTitleElement.textContent = video.title;
     }
 }
 
-// Auch bei UNSTARTED/BUFFERING und während der Werbung nachsehen.
-// YouTube liefert den Musiktitel nicht in jeder Werbephase zuverlässig.
-const videoTitleCheck = setInterval(updateVideoTitle, 1000);
+// Auch während UNSTARTED, BUFFERING und Werbung prüfen
+setInterval(updateVideoTitle, 1000);
 
 const startButton = document.getElementById("start");
 
-// Start-/Pause-Button aktualisieren
+// --------------------------------------------------
+// START-/PAUSE-BUTTON
+// --------------------------------------------------
+
 function updateStartButton(state) {
     if (!startButton) return;
 
@@ -116,7 +195,10 @@ function updateStartButton(state) {
     startButton.title = label;
 }
 
-// YouTube-Player initialisieren
+// --------------------------------------------------
+// YOUTUBE-PLAYER
+// --------------------------------------------------
+
 function onYouTubeIframeAPIReady() {
     const config = window.radioConfig;
 
@@ -139,6 +221,7 @@ function onYouTubeIframeAPIReady() {
         events: {
             onReady: function () {
                 playerReady = true;
+
                 updateStartButton(player.getPlayerState());
                 updateVideoTitle();
             },
@@ -166,10 +249,11 @@ function onYouTubeIframeAPIReady() {
 
                 updateStartButton(event.data);
 
-                // Titelanzeige bei jedem Statuswechsel prüfen, auch bei Werbung.
+                // Titel bei jedem Statuswechsel prüfen
                 updateVideoTitle();
 
                 // Songstart an Umami melden
+                // Bestehende Tracking-Logik unverändert
                 if (event.data === YT.PlayerState.PLAYING) {
                     const video = event.target.getVideoData();
 
@@ -211,7 +295,10 @@ function describePlayerState(state) {
     return names[state] || "UNKNOWN";
 }
 
-// Start / Pause
+// --------------------------------------------------
+// START / PAUSE
+// --------------------------------------------------
+
 function togglePlayback() {
     if (!playerReady) {
         alert("Der Player lädt noch. Bitte erneut versuchen.");
@@ -310,7 +397,10 @@ function togglePlayback() {
     }, 1000);
 }
 
-// Einen Song vor oder zurück
+// --------------------------------------------------
+// LAST / NEXT
+// --------------------------------------------------
+
 function jumpSongs(offset) {
     if (!playerReady) {
         alert("Der Player lädt noch. Bitte erneut versuchen.");
@@ -342,17 +432,19 @@ function jumpSongs(offset) {
     adPlaybackStartedByUs = false;
     initialStartRequested = true;
 
-    // Den bisherigen Titel sofort ausblenden, bis YouTube den neuen liefert.
-    const oldVideo = player.getVideoData();
-    waitingForNewVideoId = oldVideo && oldVideo.video_id
-        ? oldVideo.video_id
-        : null;
-    if (videoTitleElement) videoTitleElement.textContent = "";
+    // Neuen Song vormerken und alten Titel ausblenden
+    expectedVideoId = playlist[targetIndex];
+    displayedPlaylistIndex = targetIndex;
+
+    clearVideoTitle();
 
     player.playVideoAt(targetIndex);
 }
 
-// Drei Buttons verbinden
+// --------------------------------------------------
+// BUTTONS VERBINDEN
+// --------------------------------------------------
+
 if (startButton) {
     startButton.addEventListener("click", togglePlayback);
 
@@ -375,6 +467,10 @@ if (nextButton) {
         jumpSongs(1);
     });
 }
+
+// --------------------------------------------------
+// COVERBILD
+// --------------------------------------------------
 
 // Coverbild bei jedem Seitenaufruf frisch laden
 const cover = document.querySelector(".cover");
