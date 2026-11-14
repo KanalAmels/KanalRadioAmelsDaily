@@ -3,12 +3,14 @@
  * Kanal-Radio Amels
  * Zentrale Radiosteuerung und Songstatistik
  *
- * Erweiterungen:
- * - Zentrale Künstlerkorrekturen aus artists.json
- * - Automatische Entfernung von VEVO
- * - Titelbereinigung für () und []
- * - Mix und Live bleiben erhalten
  * - Titelanzeige unter dem Player
+ * - Künstlerkorrekturen aus artists.json
+ * - VEVO / Topic / Topik / Thema entfernen
+ * - Künstler aus Videotiteln erkennen:
+ *   " - ", " – ", " | "
+ * - Klammerzusätze entfernen, außer Mix und Live
+ * - Bestehende Player- und Werbesteuerung
+ * - Umami-Songstatistik mit Originaltitel
  */
 
 let player;
@@ -43,7 +45,7 @@ if (radioPlayerContainer) {
 // Künstlerkorrekturen
 let artistCorrections = {};
 
-// Den Pfad der radio.js ermitteln
+// Pfad der radio.js ermitteln
 const radioScript = Array.from(
     document.querySelectorAll("script[src]")
 ).find(function (script) {
@@ -60,7 +62,6 @@ fetch(artistsUrl)
         if (!response.ok) {
             throw new Error("HTTP " + response.status);
         }
-
         return response.json();
     })
     .then(function (data) {
@@ -107,7 +108,6 @@ function normalizeArtistName(value) {
 // Künstlernamen aus artists.json korrigieren
 function correctArtistName(author) {
     const cleaned = cleanArtistName(author);
-
     if (!cleaned) return "";
 
     const key = Object.keys(artistCorrections).find(
@@ -127,8 +127,7 @@ function correctArtistName(author) {
     return cleaned;
 }
 
-// Unnötige Klammerzusätze entfernen
-// Mix und Live bleiben erhalten
+// Klammerzusätze entfernen, außer Mix oder Live
 function cleanSongTitle(title) {
     if (!title) return "";
 
@@ -145,28 +144,55 @@ function cleanSongTitle(title) {
         .trim();
 }
 
+// Erkennen, ob der Titel bereits Interpret und Song enthält
+function splitArtistAndSong(title) {
+    // Nur Trennzeichen mit Leerzeichen davor und danach
+    const match = title.match(
+        /^(.+?)\s(?:-|–|\|)\s(.+)$/
+    );
+
+    if (!match) return null;
+
+    const artist = match[1].trim();
+    const song = match[2].trim();
+
+    if (!artist || !song) return null;
+
+    return {
+        artist: artist,
+        song: song
+    };
+}
+
 // Fertigen Anzeigetitel erzeugen
 function formatVideoTitle(video) {
     if (!video || !video.title) return "";
 
     const title = cleanSongTitle(video.title.trim());
-    const artist = correctArtistName(video.author);
+    const channelArtist = correctArtistName(video.author);
 
-    if (!artist) return title;
+    // 1. Interpret steht bereits im Videotitel
+    const parsed = splitArtistAndSong(title);
 
+    if (parsed) {
+        const titleArtist = correctArtistName(parsed.artist);
+
+        return titleArtist + " – " + parsed.song;
+    }
+
+    // 2. Kein Interpret im Titel erkennbar
+    if (!channelArtist) return title;
+
+    // Doppelte Künstlernennung verhindern
     const normalizedTitle = normalizeArtistName(title);
-    const normalizedArtist = normalizeArtistName(artist);
+    const normalizedArtist = normalizeArtistName(channelArtist);
 
     const position = normalizedTitle.indexOf(
         normalizedArtist
     );
 
     if (position !== -1) {
-        const before = normalizedTitle.slice(
-            0,
-            position
-        );
-
+        const before = normalizedTitle.slice(0, position);
         const after = normalizedTitle.slice(
             position + normalizedArtist.length
         );
@@ -184,7 +210,7 @@ function formatVideoTitle(video) {
         }
     }
 
-    return artist + " – " + title;
+    return channelArtist + " – " + title;
 }
 
 // Titelwechsel überwachen
@@ -192,11 +218,7 @@ let displayedPlaylistIndex = null;
 let expectedVideoId = null;
 
 function updateVideoTitle() {
-    if (
-        !videoTitleElement ||
-        !playerReady ||
-        !player
-    ) {
+    if (!videoTitleElement || !playerReady || !player) {
         return;
     }
 
@@ -216,11 +238,7 @@ function updateVideoTitle() {
         }
     }
 
-    if (
-        !video ||
-        !video.title ||
-        !video.video_id
-    ) {
+    if (!video || !video.title || !video.video_id) {
         return;
     }
 
@@ -265,9 +283,7 @@ function updateStartButton(state) {
             symbol = "⏯️";
         }
 
-    } else if (
-        state === YT.PlayerState.PLAYING
-    ) {
+    } else if (state === YT.PlayerState.PLAYING) {
         label = "Pause";
         symbol = "⏸️";
 
@@ -302,14 +318,8 @@ function updateStartButton(state) {
 function onYouTubeIframeAPIReady() {
     const config = window.radioConfig;
 
-    if (
-        !config ||
-        !config.kanal ||
-        !config.playlist
-    ) {
-        console.error(
-            "KanalRadio: Konfiguration fehlt."
-        );
+    if (!config || !config.kanal || !config.playlist) {
+        console.error("KanalRadio: Konfiguration fehlt.");
         return;
     }
 
@@ -327,11 +337,7 @@ function onYouTubeIframeAPIReady() {
         events: {
             onReady: function () {
                 playerReady = true;
-
-                updateStartButton(
-                    player.getPlayerState()
-                );
-
+                updateStartButton(player.getPlayerState());
                 updateVideoTitle();
             },
 
@@ -344,10 +350,7 @@ function onYouTubeIframeAPIReady() {
                     ")"
                 );
 
-                if (
-                    event.data ===
-                    YT.PlayerState.PLAYING
-                ) {
+                if (event.data === YT.PlayerState.PLAYING) {
                     hasPlaybackStarted = true;
                     initialStartRequested = true;
 
@@ -355,10 +358,7 @@ function onYouTubeIframeAPIReady() {
                     adPlaybackStartedByUs = false;
                 }
 
-                if (
-                    event.data ===
-                    YT.PlayerState.ENDED
-                ) {
+                if (event.data === YT.PlayerState.ENDED) {
                     adPausedByUs = false;
                     adPlaybackStartedByUs = false;
                     initialStartRequested = false;
@@ -368,41 +368,26 @@ function onYouTubeIframeAPIReady() {
                 updateVideoTitle();
 
                 // Umami-Songstatistik
-                if (
-                    event.data ===
-                    YT.PlayerState.PLAYING
-                ) {
-                    const video =
-                        event.target.getVideoData();
+                if (event.data === YT.PlayerState.PLAYING) {
+                    const video = event.target.getVideoData();
 
                     if (
                         video.video_id &&
-                        video.video_id !==
-                        lastTrackedVideoId
+                        video.video_id !== lastTrackedVideoId
                     ) {
-                        lastTrackedVideoId =
-                            video.video_id;
+                        lastTrackedVideoId = video.video_id;
 
-                        if (
-                            typeof window.umami !==
-                            "undefined"
-                        ) {
-                            window.umami.track(
-                                "song_start",
-                                {
-                                    kanal: config.kanal,
-                                    video_id: video.video_id,
-                                    titel: video.title
-                                }
-                            );
+                        if (typeof window.umami !== "undefined") {
+                            window.umami.track("song_start", {
+                                kanal: config.kanal,
+                                video_id: video.video_id,
+                                titel: video.title
+                            });
                         }
                     }
                 }
 
-                if (
-                    event.data ===
-                    YT.PlayerState.ENDED
-                ) {
+                if (event.data === YT.PlayerState.ENDED) {
                     lastTrackedVideoId = null;
                 }
             }
@@ -427,18 +412,14 @@ function describePlayerState(state) {
 // Start / Pause
 function togglePlayback() {
     if (!playerReady) {
-        alert(
-            "Der Player lädt noch. Bitte erneut versuchen."
-        );
+        alert("Der Player lädt noch. Bitte erneut versuchen.");
         return;
     }
 
     const before = player.getPlayerState();
     let action;
 
-    console.group(
-        "[KanalRadio Diagnose 5] Taste gedrückt"
-    );
+    console.group("[KanalRadio Diagnose 5] Taste gedrückt");
 
     console.log(
         "Status vorher:",
@@ -460,7 +441,6 @@ function togglePlayback() {
     if (before === -1) {
         if (adPausedByUs) {
             action = "playVideo";
-
             player.playVideo();
 
             adPausedByUs = false;
@@ -469,16 +449,13 @@ function togglePlayback() {
 
         } else {
             action = "pauseVideo";
-
             player.pauseVideo();
 
             adPausedByUs = true;
             adPlaybackStartedByUs = false;
         }
 
-    } else if (
-        before === YT.PlayerState.PLAYING
-    ) {
+    } else if (before === YT.PlayerState.PLAYING) {
         action = "pauseVideo";
 
         adPausedByUs = false;
@@ -497,13 +474,9 @@ function togglePlayback() {
     }
 
     const immediately = player.getPlayerState();
-
     updateStartButton(immediately);
 
-    console.log(
-        "Ausgeführter Befehl:",
-        action
-    );
+    console.log("Ausgeführter Befehl:", action);
 
     console.log(
         "Status direkt danach:",
@@ -534,24 +507,19 @@ function togglePlayback() {
 // Vorheriger / nächster Song
 function jumpSongs(offset) {
     if (!playerReady) {
-        alert(
-            "Der Player lädt noch. Bitte erneut versuchen."
-        );
+        alert("Der Player lädt noch. Bitte erneut versuchen.");
         return;
     }
 
     const playlist = player.getPlaylist();
-    const currentIndex =
-        player.getPlaylistIndex();
+    const currentIndex = player.getPlaylistIndex();
 
     if (
         !playlist ||
         playlist.length === 0 ||
         currentIndex < 0
     ) {
-        alert(
-            "Die Playlist ist noch nicht bereit."
-        );
+        alert("Die Playlist ist noch nicht bereit.");
         return;
     }
 
@@ -583,41 +551,26 @@ function jumpSongs(offset) {
 
 // Buttons verbinden
 if (startButton) {
-    startButton.addEventListener(
-        "click",
-        togglePlayback
-    );
+    startButton.addEventListener("click", togglePlayback);
 
     startButton.textContent = "⏯️ Start";
-    startButton.setAttribute(
-        "aria-label",
-        "Start"
-    );
+    startButton.setAttribute("aria-label", "Start");
     startButton.title = "Start";
 }
 
-const previousButton =
-    document.getElementById("previous");
-
-const nextButton =
-    document.getElementById("next");
+const previousButton = document.getElementById("previous");
+const nextButton = document.getElementById("next");
 
 if (previousButton) {
-    previousButton.addEventListener(
-        "click",
-        function () {
-            jumpSongs(-1);
-        }
-    );
+    previousButton.addEventListener("click", function () {
+        jumpSongs(-1);
+    });
 }
 
 if (nextButton) {
-    nextButton.addEventListener(
-        "click",
-        function () {
-            jumpSongs(1);
-        }
-    );
+    nextButton.addEventListener("click", function () {
+        jumpSongs(1);
+    });
 }
 
 // Coverbild frisch laden
@@ -628,8 +581,6 @@ if (cover) {
 
     if (coverUrl) {
         cover.src =
-            coverUrl.split("?")[0] +
-            "?t=" +
-            Date.now();
+            coverUrl.split("?")[0] + "?t=" + Date.now();
     }
 }
