@@ -5,6 +5,7 @@
  *
  * Erweiterungen:
  * - Zentrale Künstlerkorrekturen aus artists.json
+ * - Automatische Entfernung von VEVO
  * - Titelbereinigung für () und []
  * - Mix und Live bleiben erhalten
  * - Titelanzeige unter dem Player
@@ -86,6 +87,10 @@ function cleanArtistName(author) {
     return author.trim()
         .replace(
             /\s*[-–—]\s*(Topic|Topik|Thema)\s*$/i,
+            ""
+        )
+        .replace(
+            /\s*[-–—]?\s*VEVO\s*$/i,
             ""
         )
         .trim();
