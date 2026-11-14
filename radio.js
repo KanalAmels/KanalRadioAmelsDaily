@@ -8,11 +8,14 @@
  * - Buttonanzeige passend umschalten
  * - Beim ersten Startklick sofort "Pause" anzeigen
  *
- * Erweiterung:
+ * Erweiterung Titelanzeige:
  * - Original-YouTube-Titel unter dem Player
  * - Titelprüfung auch während der Werbung
  * - Playlist-Wechsel automatisch erkennen
  * - Veraltete Songtitel vermeiden
+ * - YouTube-Kanalname als Interpret ergänzen
+ * - Topic / Topik / Thema entfernen
+ * - Doppelte Interpretennamen vermeiden
  */
 
 let player;
@@ -56,6 +59,90 @@ let displayedVideoId = null;
 
 // Nach einem Wechsel auf diese Video-ID warten
 let expectedVideoId = null;
+
+// --------------------------------------------------
+// INTERPRET UND TITEL AUFBEREITEN
+// --------------------------------------------------
+
+function cleanArtistName(author) {
+    if (!author) {
+        return "";
+    }
+
+    let artist = author.trim();
+
+    // Zusätze offizieller YouTube-Musikkanäle entfernen
+    artist = artist.replace(
+        /\s*[-–—]\s*(Topic|Topik|Thema)\s*$/i,
+        ""
+    );
+
+    return artist.trim();
+}
+
+function normalizeArtistName(value) {
+    return value
+        .normalize("NFKC")
+        .toLocaleLowerCase()
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+function formatVideoTitle(video) {
+    if (!video || !video.title) {
+        return "";
+    }
+
+    const title = video.title.trim();
+    const artist = cleanArtistName(video.author);
+
+    // Kein Kanalname verfügbar:
+    // Originaltitel unverändert anzeigen
+    if (!artist) {
+        return title;
+    }
+
+    const normalizedTitle = normalizeArtistName(title);
+    const normalizedArtist = normalizeArtistName(artist);
+
+    // Interpret steht bereits im Videotitel.
+    // Wir prüfen auf einen vollständigen Namen,
+    // nicht nur auf einen zufälligen Wortbestandteil.
+    const artistPosition = normalizedTitle.indexOf(
+        normalizedArtist
+    );
+
+    if (artistPosition !== -1) {
+        const before = normalizedTitle.slice(
+            0,
+            artistPosition
+        );
+
+        const after = normalizedTitle.slice(
+            artistPosition + normalizedArtist.length
+        );
+
+        const beforeIsBoundary =
+            before === "" ||
+            !/[\p{L}\p{N}]$/u.test(before);
+
+        const afterIsBoundary =
+            after === "" ||
+            !/^[\p{L}\p{N}]/u.test(after);
+
+        if (beforeIsBoundary && afterIsBoundary) {
+            return title;
+        }
+    }
+
+    // Interpret fehlt im Titel:
+    // Kanalname voranstellen
+    return artist + " – " + title;
+}
+
+// --------------------------------------------------
+// TITELANZEIGE AKTUALISIEREN
+// --------------------------------------------------
 
 function clearVideoTitle() {
     if (videoTitleElement) {
@@ -128,8 +215,13 @@ function updateVideoTitle() {
     expectedVideoId = null;
     displayedVideoId = video.video_id;
 
-    if (videoTitleElement.textContent !== video.title) {
-        videoTitleElement.textContent = video.title;
+    // Interpret und Titel zusammensetzen
+    const formattedTitle = formatVideoTitle(video);
+
+    if (
+        videoTitleElement.textContent !== formattedTitle
+    ) {
+        videoTitleElement.textContent = formattedTitle;
     }
 }
 
