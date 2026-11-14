@@ -21,6 +21,30 @@ let adPlaybackStartedByUs = false;
 // Merkt sich den ersten Startklick
 let initialStartRequested = false;
 
+// Original-YouTube-Titel unter dem Player für alle Sender anzeigen
+const radioPlayerContainer = document.querySelector(".player");
+let videoTitleElement = null;
+
+if (radioPlayerContainer) {
+    videoTitleElement = document.createElement("div");
+    videoTitleElement.id = "radio-video-title";
+    videoTitleElement.setAttribute("aria-live", "polite");
+    videoTitleElement.style.cssText =
+        "text-align:center;max-width:100%;margin:12px auto 16px;" +
+        "padding:0 12px;color:inherit;font-weight:600;" +
+        "overflow-wrap:anywhere;";
+    radioPlayerContainer.insertAdjacentElement("afterend", videoTitleElement);
+}
+
+function updateVideoTitle() {
+    if (!videoTitleElement || !playerReady || !player) return;
+
+    const video = player.getVideoData();
+    if (video && video.title) {
+        videoTitleElement.textContent = video.title;
+    }
+}
+
 const startButton = document.getElementById("start");
 
 // Start-/Pause-Button aktualisieren
@@ -125,6 +149,14 @@ function onYouTubeIframeAPIReady() {
                 }
 
                 updateStartButton(event.data);
+
+                // Titelanzeige unabhängig vom Umami-Tracking aktualisieren
+                if (event.data === YT.PlayerState.PLAYING) {
+                    updateVideoTitle();
+                    // YouTube liefert den Titel gelegentlich verzögert.
+                    setTimeout(updateVideoTitle, 500);
+                    setTimeout(updateVideoTitle, 1500);
+                }
 
                 // Songstart an Umami melden
                 if (event.data === YT.PlayerState.PLAYING) {
