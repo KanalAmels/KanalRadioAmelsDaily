@@ -54,9 +54,12 @@
       background: #344457 !important;
       color: white !important;
     }
-    .github { background: #66a9e8; color: #000000; }
-    .youtube, .tracking-on { background: #cf252b; color: #ffffff; }
-    .spotify, .tracking-off { background: #1db954; color: #000000; }
+    a.button.github { background: #66a9e8; color: #000000; }
+    a.button.youtube { background: #cf252b; color: #ffffff; }
+    button.tracking-off { background: #1db954; color: #000000; }
+    button.tracking-on { background: #cf252b; color: #ffffff; }
+    button.spotify { background: #1db954; color: #000000; }
+    a.button.umami { background: #CDB4F6; color: #000000; }
     .spotify:disabled { opacity: 1; cursor: default; }
     .spotify:disabled:hover { filter: none; }
     #status {
@@ -93,10 +96,11 @@
       </div>
       <div class="button-group">
         <a class="button youtube" href="https://www.youtube.com/@RudolfErkens/playlists" target="_blank" rel="noopener noreferrer">▶ YouTube Playlists</a>
-        <button type="button" class="spotify" disabled title="Spotify-Playlists folgen später">♫ Spotify Playlists</button>
+        <a class="button youtube" href="https://www.youtube.com/watch?v=fRipFYoji2A&amp;list=PLB3xDmwcoNoQ" target="_blank" rel="noopener noreferrer">▶ YouTube Daily</a>
       </div>
       <div class="button-group">
-        <a class="button secondary" href="https://cloud.umami.is/" target="_blank" rel="noopener noreferrer">📊 Umami-Statistik öffnen</a>
+        <a class="button umami" href="https://cloud.umami.is/" target="_blank" rel="noopener noreferrer">📊 Umami-Statistik öffnen</a>
+        <button type="button" class="spotify" disabled title="Spotify-Playlists folgen später">♫ Spotify Playlists</button>
       </div>
       <div class="button-group">
         <button type="button" class="tracking-off" onclick="disableTracking()">🔒 Meine Besuche nicht zählen</button>
