@@ -5,7 +5,6 @@ on:
   workflow_dispatch:
 
   schedule:
-    # Täglich um 07:00 UTC
     - cron: "0 7 * * *"
 
 permissions:
@@ -17,6 +16,7 @@ concurrency:
 
 jobs:
   update-counts:
+    if: github.repository == 'KanalAmels/KanalRadioAmelsDevel' || github.repository == 'KanalAmels/KanalRadioAmelsDaily'
     runs-on: ubuntu-latest
 
     steps:
@@ -28,7 +28,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: YouTube-Playlist-Zahlen abrufen
+      - name: YouTube-Songzahlen abrufen
         env:
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
         run: |
@@ -48,12 +48,10 @@ jobs:
               "2010th_dance": "PLbKWWKlHJcRk",
           }
 
-          api_key = os.environ.get("YOUTUBE_API_KEY", "")
+          api_key = os.environ.get("YOUTUBE_API_KEY")
 
           if not api_key:
-              sys.exit(
-                  "FEHLER: GitHub Secret YOUTUBE_API_KEY fehlt."
-              )
+              sys.exit("FEHLER: YOUTUBE_API_KEY fehlt.")
 
           params = urllib.parse.urlencode({
               "part": "contentDetails",
@@ -79,14 +77,8 @@ jobs:
                   result = json.load(response)
           except Exception as error:
               sys.exit(
-                  "FEHLER beim YouTube-API-Abruf: "
+                  "FEHLER beim YouTube-Abruf: "
                   + str(error)
-              )
-
-          if "error" in result:
-              sys.exit(
-                  "YouTube-API-Fehler: "
-                  + json.dumps(result["error"])
               )
 
           counts_by_id = {}
@@ -112,11 +104,8 @@ jobs:
 
           if missing:
               sys.exit(
-                  "FEHLER: Folgende Playlists konnten "
-                  "nicht gelesen werden: "
+                  "FEHLER: Playlists nicht gefunden: "
                   + ", ".join(missing)
-                  + ". Bitte vollständige Playlist-IDs "
-                  "und API-Zugriff überprüfen."
               )
 
           counts = {
@@ -137,13 +126,12 @@ jobs:
               )
               file.write("\n")
 
-          print("Aktuelle Songzahlen:")
+          print("Ermittelte Songzahlen:")
           for key, count in counts.items():
               print(f"{key}: {count} Songs")
-
           PY
 
-      - name: Aktualisierte Songzahlen speichern
+      - name: Songzahlen im Repository speichern
         run: |
           git config user.name "github-actions[bot]"
           git config user.email \
@@ -152,9 +140,8 @@ jobs:
           git add playlist-counts.json
 
           if git diff --cached --quiet; then
-            echo "Keine Änderungen an den Songzahlen."
+            echo "Songzahlen unverändert."
           else
             git commit -m "Songzahlen automatisch aktualisieren"
             git push
           fi
-
