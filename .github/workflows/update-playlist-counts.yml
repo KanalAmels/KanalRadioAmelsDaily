@@ -50,6 +50,7 @@ jobs:
           import urllib.request
 
           playlists = {
+              "1960th_radio": "PLPzm8oQAlWx0",
               "1990th_radio": "PLdaYDPTMIOWM",
               "1990th_dance": "PLEi-YU-8ROTg",
               "2000th_radio": "PLJFKda6JaE-E",
