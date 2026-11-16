@@ -3,7 +3,7 @@
  * Kanal-Radio Amels
  * Zentrale Radiosteuerung und Songstatistik
  *
- * - Titelanzeige in Kanal-Radio-Goldgelb (#facc15)
+ * - Interpret und Songtitel zweizeilig in Goldgelb (#facc15)
  * - Intelligente Groß-/Kleinschreibung
  * - Künstlerkorrekturen aus artists.json
  * - VEVO / Topic / Topik / Thema entfernen
@@ -35,7 +35,7 @@ if (radioPlayerContainer) {
     videoTitleElement.style.cssText =
         "text-align:center;max-width:100%;margin:12px auto 16px;" +
         "padding:0 12px;color:#facc15;font-weight:600;" +
-        "overflow-wrap:anywhere;";
+        "overflow-wrap:anywhere;white-space:pre-line;";
 
     radioPlayerContainer.insertAdjacentElement(
         "afterend",
@@ -253,7 +253,7 @@ function formatVideoTitle(video) {
             parsed.song
         );
 
-        return titleArtist + " – " + songTitle;
+        return titleArtist + "\n" + songTitle;
     }
 
     // 2. Kein Interpret im Titel erkennbar
@@ -294,7 +294,7 @@ function formatVideoTitle(video) {
         }
     }
 
-    return formattedArtist + " – " + songTitle;
+    return formattedArtist + "\n" + songTitle;
 }
 
 // Titelwechsel überwachen
@@ -422,6 +422,16 @@ function onYouTubeIframeAPIReady() {
             onReady: function () {
                 playerReady = true;
                 updateStartButton(player.getPlayerState());
+
+                // Playlist ohne Autoplay vorbereiten.
+                // YouTube kann dadurch bereits vor dem Start
+                // Metadaten zum ersten Song liefern.
+                player.cuePlaylist({
+                    listType: "playlist",
+                    list: config.playlist,
+                    index: 0
+                });
+
                 updateVideoTitle();
             },
 
