@@ -171,6 +171,25 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     });
 
+    // Noch nicht verfügbare Jahrzehnte:
+    // Statt Aufklappen eine zweisprachige Meldung anzeigen
+
+    menuDropdown
+      .querySelectorAll(".menu-decade[data-coming-soon] > summary")
+      .forEach(function (summary) {
+
+        summary.addEventListener("click", function (event) {
+
+          event.preventDefault();
+
+          window.alert(
+            "Coming soon.\n\n(Kommen bald...)"
+          );
+
+        });
+
+      });
+
     // Aktuelles Jahrzehnt automatisch aufklappen
     // Dadurch wird beim Öffnen des Menüs auch der
     // aktive Radio-Mix oder Dance-Mix sofort sichtbar
