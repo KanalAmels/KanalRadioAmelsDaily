@@ -5,6 +5,8 @@ on:
   workflow_dispatch:
 
   schedule:
+    # Täglich um 07:00 UTC
+    # Nur im Daily-Repository tatsächlich ausführen
     - cron: "0 7 * * *"
 
 permissions:
@@ -16,7 +18,15 @@ concurrency:
 
 jobs:
   update-counts:
-    if: github.repository == 'KanalAmels/KanalRadioAmelsDevel' || github.repository == 'KanalAmels/KanalRadioAmelsDaily'
+    # Devel: nur manuell
+    # Daily: manuell und täglich automatisch
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event_name == 'schedule' &&
+        github.repository == 'KanalAmels/KanalRadioAmelsDaily'
+      )
+
     runs-on: ubuntu-latest
 
     steps:
