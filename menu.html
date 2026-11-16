@@ -6,6 +6,53 @@
   #menu-dropdown .menu-decade[open] > summary {
     font-weight: bold;
   }
+
+  /*
+   * Untermenü mit dynamischen Spalten:
+   * Symbol | Playlistname | Songanzahl
+   */
+
+  #menu-dropdown .menu-submenu {
+    display: grid;
+    grid-template-columns: 1fr;
+    min-width: max-content;
+  }
+
+  #menu-dropdown .menu-submenu > a {
+    display: grid;
+    grid-template-columns: 22px minmax(max-content, 1fr) auto;
+    align-items: center;
+    column-gap: 10px;
+    width: 100%;
+    color: #facc15;
+    text-decoration: none;
+  }
+
+  #menu-dropdown .menu-submenu > a > svg {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+  }
+
+  #menu-dropdown .menu-playlist-name {
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  #menu-dropdown .menu-song-count {
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  #menu-dropdown .menu-song-count:empty {
+    display: none;
+  }
+
+  /* Aktive Playlist weiterhin fett */
+  #menu-dropdown .menu-submenu a[aria-current="page"] {
+    font-weight: bold;
+  }
 </style>
 
 <nav class="menu-dropdown"
@@ -33,7 +80,9 @@
     <div class="menu-submenu">
 
       <a href="/KanalRadioAmelsDaily/1990th_radio/"
-         style="color: #facc15;">
+         style="color: #facc15;"
+         data-playlist="1990th_radio">
+
         <svg width="22" height="22"
              viewBox="0 0 24 24" fill="none"
              stroke="#facc15" stroke-width="2"
@@ -45,11 +94,16 @@
           <circle cx="9" cy="14" r="3"/>
           <path d="M15 12h3M15 16h3"/>
         </svg>
-        <span>Radio-Mix</span>
+
+        <span class="menu-playlist-name">Radio-Mix</span>
+        <span class="menu-song-count"></span>
+
       </a>
 
       <a href="/KanalRadioAmelsDaily/1990th_dance/"
-         style="color: #facc15;">
+         style="color: #facc15;"
+         data-playlist="1990th_dance">
+
         <svg width="22" height="22"
              viewBox="0 0 24 24" fill="none"
              stroke="#facc15" stroke-width="2"
@@ -63,7 +117,10 @@
           <path d="M10 13 L5 20"/>
           <path d="M15 16 L20 21"/>
         </svg>
-        <span>Dance-Mix</span>
+
+        <span class="menu-playlist-name">Dance-Mix</span>
+        <span class="menu-song-count"></span>
+
       </a>
 
     </div>
@@ -81,7 +138,9 @@
     <div class="menu-submenu">
 
       <a href="/KanalRadioAmelsDaily/2000th_radio/"
-         style="color: #facc15;">
+         style="color: #facc15;"
+         data-playlist="2000th_radio">
+
         <svg width="22" height="22"
              viewBox="0 0 24 24" fill="none"
              stroke="#facc15" stroke-width="2"
@@ -93,11 +152,16 @@
           <circle cx="9" cy="14" r="3"/>
           <path d="M15 12h3M15 16h3"/>
         </svg>
-        <span>Radio-Mix</span>
+
+        <span class="menu-playlist-name">Radio-Mix</span>
+        <span class="menu-song-count"></span>
+
       </a>
 
       <a href="/KanalRadioAmelsDaily/2000th_dance/"
-         style="color: #facc15;">
+         style="color: #facc15;"
+         data-playlist="2000th_dance">
+
         <svg width="22" height="22"
              viewBox="0 0 24 24" fill="none"
              stroke="#facc15" stroke-width="2"
@@ -111,7 +175,10 @@
           <path d="M10 13 L5 20"/>
           <path d="M15 16 L20 21"/>
         </svg>
-        <span>Dance-Mix</span>
+
+        <span class="menu-playlist-name">Dance-Mix</span>
+        <span class="menu-song-count"></span>
+
       </a>
 
     </div>
@@ -129,7 +196,9 @@
     <div class="menu-submenu">
 
       <a href="/KanalRadioAmelsDaily/2010th_radio/"
-         style="color: #facc15;">
+         style="color: #facc15;"
+         data-playlist="2010th_radio">
+
         <svg width="22" height="22"
              viewBox="0 0 24 24" fill="none"
              stroke="#facc15" stroke-width="2"
@@ -141,11 +210,16 @@
           <circle cx="9" cy="14" r="3"/>
           <path d="M15 12h3M15 16h3"/>
         </svg>
-        <span>Radio-Mix</span>
+
+        <span class="menu-playlist-name">Radio-Mix</span>
+        <span class="menu-song-count"></span>
+
       </a>
 
       <a href="/KanalRadioAmelsDaily/2010th_dance/"
-         style="color: #facc15;">
+         style="color: #facc15;"
+         data-playlist="2010th_dance">
+
         <svg width="22" height="22"
              viewBox="0 0 24 24" fill="none"
              stroke="#facc15" stroke-width="2"
@@ -159,7 +233,10 @@
           <path d="M10 13 L5 20"/>
           <path d="M15 16 L20 21"/>
         </svg>
-        <span>Dance-Mix</span>
+
+        <span class="menu-playlist-name">Dance-Mix</span>
+        <span class="menu-song-count"></span>
+
       </a>
 
     </div>
