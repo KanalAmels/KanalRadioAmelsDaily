@@ -179,6 +179,100 @@ document.addEventListener("DOMContentLoaded", async function () {
       activeDecade.open = true;
     }
 
+    // Songzahlen aus zentraler JSON-Datei laden
+    //
+    // Erwartetes Format:
+    //
+    // {
+    //   "1990th_radio": 247,
+    //   "1990th_dance": 183
+    // }
+    //
+    // Die tatsächlichen Zahlen werden später
+    // automatisch über GitHub Actions ermittelt.
+
+    async function loadPlaylistCounts() {
+
+      const countsURL = new URL(
+        "playlist-counts.json",
+        projectRoot
+      );
+
+      try {
+
+        // Beim Seitenaufruf die veröffentlichte
+        // JSON-Datei neu abrufen
+
+        const countsResponse = await fetch(countsURL, {
+          cache: "no-store"
+        });
+
+        if (!countsResponse.ok) {
+          throw new Error(
+            "Songzahlen nicht verfügbar: " +
+            countsResponse.status
+          );
+        }
+
+        const counts = await countsResponse.json();
+
+        // Jede Playlist anhand ihres data-playlist-Wertes
+        // mit der passenden Songanzahl verbinden
+
+        menuDropdown
+          .querySelectorAll("[data-playlist]")
+          .forEach(function (link) {
+
+            const playlistKey = link.dataset.playlist;
+
+            const countElement = link.querySelector(
+              ".menu-song-count"
+            );
+
+            if (!countElement) {
+              return;
+            }
+
+            const count = counts[playlistKey];
+
+            // Nur gültige, nichtnegative Ganzzahlen anzeigen
+            // Keine erfundenen Werte und keine Fehlertexte
+
+            if (
+              typeof count === "number" &&
+              Number.isSafeInteger(count) &&
+              count >= 0
+            ) {
+
+              countElement.textContent =
+                "(" + count.toLocaleString("de-DE") + " Songs)";
+
+            } else {
+
+              countElement.textContent = "";
+
+            }
+
+          });
+
+      } catch (error) {
+
+        // Das Menü muss auch ohne Songzahlen
+        // vollständig funktionsfähig bleiben
+
+        console.info(
+          "Kanal-Radio: Songzahlen noch nicht verfügbar.",
+          error.message
+        );
+
+      }
+
+    }
+
+    // Songzahlen laden, ohne das Menü zu blockieren
+
+    loadPlaylistCounts();
+
     // Menü öffnen und schließen
 
     function closeMenu() {
