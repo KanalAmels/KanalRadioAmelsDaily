@@ -1,1 +1,160 @@
 
+name: Update Playlist Counts
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    # Täglich um 07:00 UTC
+    - cron: "0 7 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-playlist-counts
+  cancel-in-progress: false
+
+jobs:
+  update-counts:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+
+      - name: Python einrichten
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: YouTube-Playlist-Zahlen abrufen
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import sys
+          import urllib.parse
+          import urllib.request
+
+          playlists = {
+              "1990th_radio": "PLdaYDPTMIOWM",
+              "1990th_dance": "PLEi-YU-8ROTg",
+              "2000th_radio": "PLJFKda6JaE-E",
+              "2000th_dance": "PLd3WfsuUQBoc",
+              "2010th_radio": "PLITF5xF88VJI",
+              "2010th_dance": "PLbKWWKlHJcRk",
+          }
+
+          api_key = os.environ.get("YOUTUBE_API_KEY", "")
+
+          if not api_key:
+              sys.exit(
+                  "FEHLER: GitHub Secret YOUTUBE_API_KEY fehlt."
+              )
+
+          params = urllib.parse.urlencode({
+              "part": "contentDetails",
+              "id": ",".join(playlists.values()),
+              "key": api_key,
+              "maxResults": 50,
+          })
+
+          url = (
+              "https://www.googleapis.com/youtube/v3/playlists?"
+              + params
+          )
+
+          request = urllib.request.Request(
+              url,
+              headers={"Accept": "application/json"}
+          )
+
+          try:
+              with urllib.request.urlopen(
+                  request, timeout=30
+              ) as response:
+                  result = json.load(response)
+          except Exception as error:
+              sys.exit(
+                  "FEHLER beim YouTube-API-Abruf: "
+                  + str(error)
+              )
+
+          if "error" in result:
+              sys.exit(
+                  "YouTube-API-Fehler: "
+                  + json.dumps(result["error"])
+              )
+
+          counts_by_id = {}
+
+          for item in result.get("items", []):
+              playlist_id = item.get("id")
+              count = item.get(
+                  "contentDetails", {}
+              ).get("itemCount")
+
+              if (
+                  playlist_id
+                  and type(count) is int
+                  and count >= 0
+              ):
+                  counts_by_id[playlist_id] = count
+
+          missing = [
+              key
+              for key, playlist_id in playlists.items()
+              if playlist_id not in counts_by_id
+          ]
+
+          if missing:
+              sys.exit(
+                  "FEHLER: Folgende Playlists konnten "
+                  "nicht gelesen werden: "
+                  + ", ".join(missing)
+                  + ". Bitte vollständige Playlist-IDs "
+                  "und API-Zugriff überprüfen."
+              )
+
+          counts = {
+              key: counts_by_id[playlist_id]
+              for key, playlist_id in playlists.items()
+          }
+
+          with open(
+              "playlist-counts.json",
+              "w",
+              encoding="utf-8"
+          ) as file:
+              json.dump(
+                  counts,
+                  file,
+                  indent=2,
+                  ensure_ascii=False
+              )
+              file.write("\n")
+
+          print("Aktuelle Songzahlen:")
+          for key, count in counts.items():
+              print(f"{key}: {count} Songs")
+
+          PY
+
+      - name: Aktualisierte Songzahlen speichern
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add playlist-counts.json
+
+          if git diff --cached --quiet; then
+            echo "Keine Änderungen an den Songzahlen."
+          else
+            git commit -m "Songzahlen automatisch aktualisieren"
+            git push
+          fi
+
