@@ -18,7 +18,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
 
-      - name: Daily vollständig ersetzen
+      - name: Daily synchronisieren und Songzahlen erhalten
         env:
           GH_TOKEN: ${{ secrets.DAILY_SYNC_TOKEN }}
         run: |
@@ -30,8 +30,71 @@ jobs:
           fi
 
           git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git remote add daily "https://x-access-token:${GH_TOKEN}@github.com/KanalAmels/KanalRadioAmelsDaily.git"
+          # Daily als zusätzliches Remote einrichten
+
+          git remote add daily \
+            "https://x-access-token:${GH_TOKEN}@github.com/KanalAmels/KanalRadioAmelsDaily.git"
+
+          # Aktuellen Stand von Daily laden
+
+          git fetch daily main
+
+          # Aktuelle Songzahlen aus Daily sichern
+
+          COUNTS_FILE="$(mktemp)"
+
+          if git cat-file -e \
+            refs/remotes/daily/main:playlist-counts.json 2>/dev/null; then
+
+            git show \
+              refs/remotes/daily/main:playlist-counts.json \
+              > "$COUNTS_FILE"
+
+            echo "Aktuelle Songzahlen aus Daily gesichert."
+
+          elif [ -f playlist-counts.json ]; then
+
+            cp playlist-counts.json "$COUNTS_FILE"
+
+            echo "Noch keine Daily-Songzahlen vorhanden."
+            echo "Songzahlen aus Devel werden übernommen."
+
+          else
+
+            echo "Fehler: Keine playlist-counts.json vorhanden."
+            rm -f "$COUNTS_FILE"
+            exit 1
+
+          fi
+
+          # Neuen Commit auf Basis des Devel-Stands erzeugen
+          # Dabei bleibt die bestehende Devel-Historie erhalten
+
+          git switch --detach HEAD
+
+          # Aktuelle Songzahlen von Daily wiederherstellen
+
+          cp "$COUNTS_FILE" playlist-counts.json
+          rm -f "$COUNTS_FILE"
+
+          git add playlist-counts.json
+
+          # Nur bei geänderten Songzahlen einen Commit erzeugen
+
+          if ! git diff --cached --quiet; then
+
+            git commit -m \
+              "Daily-Songzahlen bei Synchronisierung erhalten"
+
+          fi
+
+          # Devel nach Daily übertragen
+          # Mit den erhaltenen aktuellen Daily-Songzahlen
 
           git push --force daily HEAD:refs/heads/main
+
+          echo "Synchronisierung erfolgreich."
+          echo "Aktuelle Daily-Songzahlen wurden erhalten."
