@@ -41,9 +41,9 @@ if (radioPlayerContainer) {
     videoTitleElement.id = "radio-video-title";
     videoTitleElement.setAttribute("aria-live", "polite");
     videoTitleElement.style.cssText =
-        "text-align:center;max-width:100%;margin:12px auto 16px;" +
+        "text-align:center;max-width:100%;margin:6px auto 6px;" +
         "padding:0 12px;color:#facc15;font-weight:600;" +
-        "overflow-wrap:anywhere;white-space:pre-line;";
+        "overflow-wrap:anywhere;";
 
     radioPlayerContainer.insertAdjacentElement(
         "afterend",
@@ -248,6 +248,7 @@ function normalizeArtistName(value) {
 function correctArtistName(author) {
     const cleaned = cleanArtistName(author);
     if (!cleaned) return "";
+
 
     const key = Object.keys(artistCorrections).find(
         function (name) {
@@ -498,6 +499,7 @@ function updateVideoTitle() {
         (
             !currentVideoId ||
             metadataSong.videoId === currentVideoId
+        
         );
 
     let source = metadataMatches
@@ -526,11 +528,41 @@ function updateVideoTitle() {
 
     const formatted = formatVideoTitle(source);
 
-    if (
-        formatted &&
-        videoTitleElement.textContent !== formatted
-    ) {
-        videoTitleElement.textContent = formatted;
+    // Positionsanzeige nur im sichtbaren Titelbereich ergänzen.
+    // Die Originaldaten für Umami bleiben unverändert.
+    const playlistLength = (
+        playerReady && player && initialPlaylistPrepared &&
+        Array.isArray(player.getPlaylist()) &&
+        player.getPlaylist().length > 0
+    )
+        ? player.getPlaylist().length
+        : (playlistMetadata && Array.isArray(playlistMetadata.songs)
+            ? playlistMetadata.songs.length
+            : 0);
+
+    if (formatted) {
+        const lines = formatted.split("\n");
+        const positionText = playlistLength > 0 &&
+            index >= 0 && index < playlistLength
+            ? "(" + (index + 1) + "/" + playlistLength + ")"
+            : "";
+        const artistAndTitle = lines.map(function (line) {
+            return line.trim();
+        });
+        const html = artistAndTitle.map(function (line) {
+            const span = document.createElement("div");
+            span.textContent = line;
+            return span.outerHTML;
+        }).join("");
+        const position = document.createElement("div");
+        position.className = "radio-song-position";
+        position.style.cssText =
+            "font-size:0.875em;font-weight:600;margin-top:2px;";
+        position.textContent = positionText;
+        const newHTML = html + (positionText ? position.outerHTML : "");
+        if (videoTitleElement.innerHTML !== newHTML) {
+            videoTitleElement.innerHTML = newHTML;
+        }
     }
 
     displayedPlaylistIndex = index;
@@ -718,6 +750,11 @@ function onYouTubeIframeAPIReady() {
 
                     if (
                         video.video_id &&
+                        video.video_id !== lastTrackedVideoId
+                    ) {
+                        lastTrackedVideoId =
+                            video.video_id;
+
                         video.video_id !== lastTrackedVideoId
                     ) {
                         lastTrackedVideoId =
