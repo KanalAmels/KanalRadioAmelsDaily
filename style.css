@@ -73,25 +73,52 @@ iframe {
   margin: 6px auto 6px;
   padding: 0 12px;
   color: #facc15;
+  font-size: 16px;
   font-weight: 600;
+  line-height: 1.3;
   text-align: center;
   overflow-wrap: anywhere;
 }
 
-#radio-video-title .radio-song-artist,
+/* Interpret */
+
+#radio-video-title .radio-song-artist {
+  display: block;
+  margin: 0;
+  padding: 0;
+}
+
+/* Songtitel */
+
 #radio-video-title .radio-song-title {
   display: block;
   margin: 0;
   padding: 0;
 }
 
+/* Playlistposition */
+
 #radio-video-title .radio-song-position {
   display: block;
-  margin-top: 2px;
+  margin-top: 3px;
   padding: 0;
-  font-size: 0.875em;
-  font-weight: 600;
   color: inherit;
+  font-size: 0.875em;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+/* Kompaktere Darstellung auf kleinen Displays */
+
+@media (max-width: 380px) {
+  #radio-video-title {
+    font-size: 15px;
+    line-height: 1.25;
+  }
+
+  #radio-video-title .radio-song-position {
+    margin-top: 2px;
+  }
 }
 
 /* Steuerung */
