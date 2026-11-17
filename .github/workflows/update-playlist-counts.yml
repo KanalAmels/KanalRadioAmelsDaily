@@ -4,11 +4,6 @@ name: Update Playlist Counts
 on:
   workflow_dispatch:
 
-  schedule:
-    # Täglich um 07:00 UTC
-    # Nur im Daily-Repository tatsächlich ausführen
-    - cron: "0 7 * * *"
-
 permissions:
   contents: write
 
@@ -18,14 +13,8 @@ concurrency:
 
 jobs:
   update-counts:
-    # Devel: nur manuell
-    # Daily: manuell und täglich automatisch
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (
-        github.event_name == 'schedule' &&
-        github.repository == 'KanalAmels/KanalRadioAmelsDaily'
-      )
+    # Nur im Entwicklungsrepository ausführen; in Daily vollständig gesperrt.
+    if: github.repository == 'KanalAmels/KanalRadioAmelsDevel'
 
     runs-on: ubuntu-latest
 
