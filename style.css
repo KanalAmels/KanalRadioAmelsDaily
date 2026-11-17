@@ -38,7 +38,6 @@ h1 {
 }
 
 /* Titelbild */
-
 .cover {
   display: block;
   width: 100%;
@@ -49,7 +48,6 @@ h1 {
 }
 
 /* YouTube-Player */
-
 .player {
   width: 100%;
   max-width: 480px;
@@ -66,11 +64,10 @@ iframe {
 }
 
 /* Titelanzeige */
-
 #radio-video-title {
   width: 100%;
   max-width: 480px;
-  margin: 6px auto 6px;
+  margin: 3px auto 6px;
   padding: 0 12px;
   color: #facc15;
   font-size: 16px;
@@ -81,7 +78,6 @@ iframe {
 }
 
 /* Interpret */
-
 #radio-video-title .radio-song-artist {
   display: block;
   margin: 0;
@@ -89,7 +85,6 @@ iframe {
 }
 
 /* Songtitel */
-
 #radio-video-title .radio-song-title {
   display: block;
   margin: 0;
@@ -97,7 +92,6 @@ iframe {
 }
 
 /* Playlistposition */
-
 #radio-video-title .radio-song-position {
   display: block;
   margin-top: 3px;
@@ -109,7 +103,6 @@ iframe {
 }
 
 /* Kompaktere Darstellung auf kleinen Displays */
-
 @media (max-width: 380px) {
   #radio-video-title {
     font-size: 15px;
@@ -122,13 +115,12 @@ iframe {
 }
 
 /* Steuerung */
-
 .controls {
   display: flex;
   justify-content: center;
   gap: 10px;
   max-width: 480px;
-  margin: 18px auto;
+  margin: 10px auto;
 }
 
 .controls button {
@@ -145,7 +137,6 @@ iframe {
 }
 
 /* Unterer Bereich */
-
 .footer {
   width: 100%;
   max-width: 480px;
@@ -157,7 +148,6 @@ iframe {
 }
 
 /* Slogan: gelb und linksbündig */
-
 .tagline {
   color: #facc15;
   font-size: 14px;
