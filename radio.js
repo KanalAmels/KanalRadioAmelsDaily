@@ -40,10 +40,17 @@ if (radioPlayerContainer) {
     videoTitleElement = document.createElement("div");
     videoTitleElement.id = "radio-video-title";
     videoTitleElement.setAttribute("aria-live", "polite");
-    videoTitleElement.style.cssText =
-        "text-align:center;max-width:100%;margin:6px auto 6px;" +
-        "padding:0 12px;color:#facc15;font-weight:600;" +
-        "overflow-wrap:anywhere;";
+    // Die Darstellung übernimmt vollständig die style.css.
+    const artistElement = document.createElement("div");
+    artistElement.className = "radio-song-artist";
+
+    const songElement = document.createElement("div");
+    songElement.className = "radio-song-title";
+
+    const positionElement = document.createElement("div");
+    positionElement.className = "radio-song-position";
+
+    videoTitleElement.append(artistElement, songElement, positionElement);
 
     radioPlayerContainer.insertAdjacentElement(
         "afterend",
@@ -246,6 +253,7 @@ function normalizeArtistName(value) {
 
 // Künstlernamen aus artists.json korrigieren
 function correctArtistName(author) {
+
     const cleaned = cleanArtistName(author);
     if (!cleaned) return "";
 
@@ -503,6 +511,7 @@ function updateVideoTitle() {
         );
 
     let source = metadataMatches
+
         ? metadataSong
         : null;
 
@@ -546,22 +555,32 @@ function updateVideoTitle() {
             index >= 0 && index < playlistLength
             ? "(" + (index + 1) + "/" + playlistLength + ")"
             : "";
-        const artistAndTitle = lines.map(function (line) {
-            return line.trim();
-        });
-        const html = artistAndTitle.map(function (line) {
-            const span = document.createElement("div");
-            span.textContent = line;
-            return span.outerHTML;
-        }).join("");
-        const position = document.createElement("div");
-        position.className = "radio-song-position";
-        position.style.cssText =
-            "font-size:0.875em;font-weight:600;margin-top:2px;";
-        position.textContent = positionText;
-        const newHTML = html + (positionText ? position.outerHTML : "");
-        if (videoTitleElement.innerHTML !== newHTML) {
-            videoTitleElement.innerHTML = newHTML;
+
+        const artistElement = videoTitleElement.querySelector(
+            ".radio-song-artist"
+        );
+        const songElement = videoTitleElement.querySelector(
+            ".radio-song-title"
+        );
+        const positionElement = videoTitleElement.querySelector(
+            ".radio-song-position"
+        );
+
+        if (artistElement && songElement && positionElement) {
+            const artistText = lines.length > 1 ? lines[0].trim() : "";
+            const songText = lines.length > 1
+                ? lines.slice(1).join(" ").trim()
+                : lines[0].trim();
+
+            if (artistElement.textContent !== artistText) {
+                artistElement.textContent = artistText;
+            }
+            if (songElement.textContent !== songText) {
+                songElement.textContent = songText;
+            }
+            if (positionElement.textContent !== positionText) {
+                positionElement.textContent = positionText;
+            }
         }
     }
 
@@ -749,12 +768,8 @@ function onYouTubeIframeAPIReady() {
                         event.target.getVideoData();
 
                     if (
-                        video.video_id &&
-                        video.video_id !== lastTrackedVideoId
-                    ) {
-                        lastTrackedVideoId =
-                            video.video_id;
 
+                        video.video_id &&
                         video.video_id !== lastTrackedVideoId
                     ) {
                         lastTrackedVideoId =
@@ -947,8 +962,21 @@ function jumpSongs(offset) {
     expectedVideoId = playlist[targetIndex];
     pendingSongIndex = targetIndex;
 
+    // Titelinhalte leeren, DOM-Elemente erhalten
     if (videoTitleElement) {
-        videoTitleElement.textContent = "";
+        const artistElement = videoTitleElement.querySelector(
+            ".radio-song-artist"
+        );
+        const songElement = videoTitleElement.querySelector(
+            ".radio-song-title"
+        );
+        const positionElement = videoTitleElement.querySelector(
+            ".radio-song-position"
+        );
+
+        if (artistElement) artistElement.textContent = "";
+        if (songElement) songElement.textContent = "";
+        if (positionElement) positionElement.textContent = "";
     }
 
     player.playVideoAt(targetIndex);
