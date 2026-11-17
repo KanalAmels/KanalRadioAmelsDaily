@@ -4,12 +4,10 @@
  * Zentrale Radiosteuerung und Songstatistik
  *
  * - Interpret und Songtitel zweizeilig in Goldgelb (#facc15)
- * - Intelligente Groß-/Kleinschreibung
  * - Künstlerkorrekturen aus artists.json
  * - VEVO / Topic / Topik / Thema entfernen
- * - Künstler aus Videotiteln erkennen:
- *   " - ", "- ", " – ", " | "
- * - Klammerzusätze entfernen, außer Mix und Live
+ * - Titelinformationen vor dem Start aus playlist-metadata.json
+ * - Daily-Startsong aus daily/daily-start.json
  * - Bestehende Player- und Werbesteuerung
  * - Umami-Songstatistik mit Originaltitel
  */
@@ -23,6 +21,16 @@ let hasPlaybackStarted = false;
 let adPausedByUs = false;
 let adPlaybackStartedByUs = false;
 let initialStartRequested = false;
+
+// Neue Metadaten- und Daily-Steuerung
+let playlistMetadata = null;
+let dailyStartIndex = 0;
+let initialPlaylistPrepared = false;
+let pendingSongIndex = null;
+let dailyStartLoaded = false;
+
+const radioConfig = window.radioConfig || {};
+const isDaily = radioConfig.kanal === "Daily";
 
 // Titelanzeige
 const radioPlayerContainer = document.querySelector(".player");
@@ -46,18 +54,33 @@ if (radioPlayerContainer) {
 // Künstlerkorrekturen
 let artistCorrections = {};
 
-// Pfad der radio.js ermitteln
+// Pfad der zentralen radio.js ermitteln
 const radioScript = Array.from(
     document.querySelectorAll("script[src]")
 ).find(function (script) {
     return /(?:^|\/)radio\.js(?:[?#]|$)/.test(script.src);
 });
 
-const artistsUrl = radioScript
-    ? new URL("artists.json", radioScript.src).href
-    : "artists.json";
+const radioBaseUrl = radioScript
+    ? new URL(".", radioScript.src)
+    : new URL("../", document.baseURI);
 
-// Zentrale Korrekturliste laden
+const artistsUrl = new URL(
+    "artists.json",
+    radioBaseUrl
+).href;
+
+const metadataUrl = new URL(
+    "playlist-metadata.json",
+    radioBaseUrl
+).href;
+
+const dailyStartUrl = new URL(
+    "daily-start.json",
+    document.baseURI
+).href;
+
+// Künstlerkorrekturen laden
 fetch(artistsUrl)
     .then(function (response) {
         if (!response.ok) {
@@ -82,6 +105,117 @@ fetch(artistsUrl)
         );
     });
 
+// Neue Playlist-Metadaten laden
+const metadataPromise = fetch(metadataUrl, {
+    cache: "no-store"
+})
+    .then(function (response) {
+        if (!response.ok) {
+            throw new Error("HTTP " + response.status);
+        }
+        return response.json();
+    })
+    .then(function (data) {
+        playlistMetadata =
+            data &&
+            data.playlists &&
+            data.playlists[radioConfig.playlist]
+                ? data.playlists[radioConfig.playlist]
+                : null;
+
+        if (playlistMetadata) {
+            console.log(
+                "KanalRadio: Metadaten geladen:",
+                radioConfig.kanal
+            );
+        } else {
+            console.warn(
+                "KanalRadio: Keine Metadaten für Playlist:",
+                radioConfig.playlist
+            );
+        }
+
+        updateVideoTitle();
+    })
+    .catch(function (error) {
+        console.warn(
+            "KanalRadio: playlist-metadata.json nicht geladen:",
+            error.message
+        );
+    });
+
+// Daily-Startsong aus JSON lesen
+async function readDailyStartIndex() {
+    if (!isDaily) {
+        dailyStartLoaded = true;
+        return 0;
+    }
+
+    try {
+        const response = await fetch(dailyStartUrl, {
+            cache: "no-store"
+        });
+
+        if (!response.ok) {
+            throw new Error("HTTP " + response.status);
+        }
+
+        const data = await response.json();
+
+        if (
+            !Number.isSafeInteger(data.startSong) ||
+            data.startSong < 1
+        ) {
+            throw new Error(
+                "startSong muss eine positive ganze Zahl sein."
+            );
+        }
+
+        // YouTube zählt ab Index 0
+        let index = data.startSong - 1;
+
+        // Falls die Metadaten bereits geladen sind:
+        // Ungültige Songnummer abfangen
+        const songs = playlistMetadata &&
+            playlistMetadata.songs;
+
+        if (
+            Array.isArray(songs) &&
+            index >= songs.length
+        ) {
+            console.warn(
+                "KanalRadio Daily: Startsong liegt außerhalb " +
+                "der Playlist. Verwende Song 1."
+            );
+            index = 0;
+        }
+
+        console.log(
+            "KanalRadio Daily: Startsong:",
+            index + 1
+        );
+
+        return index;
+
+    } catch (error) {
+        console.warn(
+            "KanalRadio Daily: Startsong nicht geladen. " +
+            "Verwende Song 1.",
+            error.message
+        );
+        return 0;
+    }
+}
+
+// Daily-Konfiguration bereits beim Seitenaufruf laden
+const dailyStartPromise = readDailyStartIndex()
+    .then(function (index) {
+        dailyStartIndex = index;
+        dailyStartLoaded = true;
+        updateVideoTitle();
+        return index;
+    });
+
 // YouTube-Kanalnamen bereinigen
 function cleanArtistName(author) {
     if (!author) return "";
@@ -92,7 +226,11 @@ function cleanArtistName(author) {
             ""
         )
         .replace(
-            /\s*[-–—]?\s*VEVO\s*$/i,
+            /(?:Official)?VEVO\s*$/i,
+            ""
+        )
+        .replace(
+            /\s*[-–—]\s*$/i,
             ""
         )
         .trim();
@@ -128,8 +266,7 @@ function correctArtistName(author) {
     return cleaned;
 }
 
-// Bekannte Eigenschreibweisen erhalten.
-// Die Liste kann bei Bedarf ergänzt werden.
+// Bekannte Eigenschreibweisen erhalten
 const protectedCapitalization = {
     "ABBA": "ABBA",
     "AC/DC": "AC/DC",
@@ -143,8 +280,7 @@ const protectedCapitalization = {
     "NENA": "Nena"
 };
 
-// Prüfen, ob ein Text vollständig großgeschrieben ist.
-// Zahlen und Satzzeichen spielen dabei keine Rolle.
+// Prüfen, ob ein Text vollständig großgeschrieben ist
 function isAllUppercase(value) {
     const letters = value.match(/\p{L}/gu);
 
@@ -155,12 +291,12 @@ function isAllUppercase(value) {
     return value === value.toLocaleUpperCase("de-DE");
 }
 
-// Einzelne Wörter lesbar formatieren.
-// Apostrophe und Bindestriche innerhalb von Wörtern
-// werden berücksichtigt.
+// Einzelne Wörter lesbar formatieren
 function capitalizeWord(word) {
     const protectedWord =
-        protectedCapitalization[word.toLocaleUpperCase("de-DE")];
+        protectedCapitalization[
+            word.toLocaleUpperCase("de-DE")
+        ];
 
     if (protectedWord) {
         return protectedWord;
@@ -171,13 +307,13 @@ function capitalizeWord(word) {
     return lower.replace(
         /(^|[-'’])(\p{L})/gu,
         function (match, separator, letter) {
-            return separator + letter.toLocaleUpperCase("de-DE");
+            return separator +
+                letter.toLocaleUpperCase("de-DE");
         }
     );
 }
 
-// Nur komplett großgeschriebene Textteile umwandeln.
-// Bereits gemischte Schreibweisen bleiben unverändert.
+// Groß-/Kleinschreibung korrigieren
 function normalizeCapitalization(value) {
     if (!value || !isAllUppercase(value)) {
         return value;
@@ -189,7 +325,6 @@ function normalizeCapitalization(value) {
             if (/^\s+$/.test(part)) {
                 return part;
             }
-
             return capitalizeWord(part);
         })
         .join("");
@@ -212,11 +347,8 @@ function cleanSongTitle(title) {
         .trim();
 }
 
-// Erkennen, ob der Titel bereits Interpret und Song enthält
+// Interpret und Song aus Videotitel erkennen
 function splitArtistAndSong(title) {
-    // Bindestrich mit Leerzeichen danach genügt.
-    // Gedankenstrich und senkrechter Strich
-    // benötigen Leerzeichen auf beiden Seiten.
     const match = title.match(
         /^(.+?)(?:\s*-\s+|\s+–\s+|\s+\|\s+)(.+)$/
     );
@@ -241,7 +373,7 @@ function formatVideoTitle(video) {
     const title = cleanSongTitle(video.title.trim());
     const channelArtist = correctArtistName(video.author);
 
-    // 1. Interpret steht bereits im Videotitel
+    // Interpret steht bereits im Videotitel
     const parsed = splitArtistAndSong(title);
 
     if (parsed) {
@@ -256,27 +388,34 @@ function formatVideoTitle(video) {
         return titleArtist + "\n" + songTitle;
     }
 
-    // 2. Kein Interpret im Titel erkennbar
+    // Kein Interpret im Titel erkennbar
     const songTitle = normalizeCapitalization(title);
 
-    if (!channelArtist) return songTitle;
+    if (!channelArtist) {
+        return songTitle;
+    }
 
     const formattedArtist = normalizeCapitalization(
         channelArtist
     );
 
     // Doppelte Künstlernennung verhindern
-    const normalizedTitle = normalizeArtistName(songTitle);
-    const normalizedArtist = normalizeArtistName(
-        formattedArtist
-    );
+    const normalizedTitle =
+        normalizeArtistName(songTitle);
+
+    const normalizedArtist =
+        normalizeArtistName(formattedArtist);
 
     const position = normalizedTitle.indexOf(
         normalizedArtist
     );
 
     if (position !== -1) {
-        const before = normalizedTitle.slice(0, position);
+        const before = normalizedTitle.slice(
+            0,
+            position
+        );
+
         const after = normalizedTitle.slice(
             position + normalizedArtist.length
         );
@@ -301,43 +440,106 @@ function formatVideoTitle(video) {
 let displayedPlaylistIndex = null;
 let expectedVideoId = null;
 
+// Metadaten für eine Songposition ermitteln
+function getMetadataSong(index) {
+    if (
+        !playlistMetadata ||
+        !Array.isArray(playlistMetadata.songs)
+    ) {
+        return null;
+    }
+
+    return playlistMetadata.songs[index] || null;
+}
+
+// Interpret und Songtitel aktualisieren
 function updateVideoTitle() {
-    if (!videoTitleElement || !playerReady || !player) {
+    if (!videoTitleElement) return;
+
+    // Vor Playerbereitschaft:
+    // Daily verwendet seinen konfigurierten Startsong,
+    // alle anderen Sender verwenden Song 1.
+    if (isDaily && !dailyStartLoaded) {
         return;
     }
 
-    const playlist = player.getPlaylist();
-    const playlistIndex = player.getPlaylistIndex();
-    const video = player.getVideoData();
+    let index = isDaily ? dailyStartIndex : 0;
+    let currentVideoId = null;
+    let liveVideo = null;
 
     if (
-        playlist &&
-        playlistIndex >= 0 &&
-        playlistIndex < playlist.length
+        playerReady &&
+        player &&
+        initialPlaylistPrepared
     ) {
-        if (playlistIndex !== displayedPlaylistIndex) {
-            displayedPlaylistIndex = playlistIndex;
-            expectedVideoId = playlist[playlistIndex];
-            videoTitleElement.textContent = "";
+        const playlist = player.getPlaylist();
+        const playerIndex = player.getPlaylistIndex();
+
+        if (
+            Array.isArray(playlist) &&
+            playerIndex >= 0 &&
+            playerIndex < playlist.length
+        ) {
+            index = playerIndex;
+            currentVideoId = playlist[index];
+
+        } else if (pendingSongIndex !== null) {
+            index = pendingSongIndex;
         }
+
+        liveVideo = player.getVideoData();
     }
 
-    if (!video || !video.title || !video.video_id) {
+    const metadataSong = getMetadataSong(index);
+
+    const metadataMatches =
+        metadataSong &&
+        metadataSong.title &&
+        (
+            !currentVideoId ||
+            metadataSong.videoId === currentVideoId
+        );
+
+    let source = metadataMatches
+        ? metadataSong
+        : null;
+
+    // Originaldaten aus GitHub bevorzugen:
+    // Sie enthalten neben dem Titel auch den Kanalnamen.
+    // Die YouTube-Playerdaten sind unser Fallback.
+    if (
+        !source &&
+        liveVideo &&
+        liveVideo.title &&
+        liveVideo.video_id &&
+        (
+            !currentVideoId ||
+            liveVideo.video_id === currentVideoId
+        )
+    ) {
+        source = liveVideo;
+    }
+
+    if (!source) {
         return;
     }
+
+    const formatted = formatVideoTitle(source);
 
     if (
-        expectedVideoId &&
-        video.video_id !== expectedVideoId
+        formatted &&
+        videoTitleElement.textContent !== formatted
     ) {
-        return;
-    }
-
-    const formatted = formatVideoTitle(video);
-
-    if (videoTitleElement.textContent !== formatted) {
         videoTitleElement.textContent = formatted;
     }
+
+    displayedPlaylistIndex = index;
+
+    expectedVideoId =
+        currentVideoId ||
+        source.videoId ||
+        source.video_id ||
+        null;
 }
 
 // Titel regelmäßig aktualisieren
@@ -356,18 +558,22 @@ function updateStartButton(state) {
         if (adPausedByUs) {
             label = "Start";
             symbol = "▶️";
+
         } else if (
             adPlaybackStartedByUs ||
             initialStartRequested
         ) {
             label = "Pause";
             symbol = "⏸️";
+
         } else {
             label = "Start";
             symbol = "⏯️";
         }
 
-    } else if (state === YT.PlayerState.PLAYING) {
+    } else if (
+        state === YT.PlayerState.PLAYING
+    ) {
         label = "Pause";
         symbol = "⏸️";
 
@@ -393,8 +599,14 @@ function updateStartButton(state) {
         return;
     }
 
-    startButton.textContent = symbol + " " + label;
-    startButton.setAttribute("aria-label", label);
+    startButton.textContent =
+        symbol + " " + label;
+
+    startButton.setAttribute(
+        "aria-label",
+        label
+    );
+
     startButton.title = label;
 }
 
@@ -402,8 +614,14 @@ function updateStartButton(state) {
 function onYouTubeIframeAPIReady() {
     const config = window.radioConfig;
 
-    if (!config || !config.kanal || !config.playlist) {
-        console.error("KanalRadio: Konfiguration fehlt.");
+    if (
+        !config ||
+        !config.kanal ||
+        !config.playlist
+    ) {
+        console.error(
+            "KanalRadio: Konfiguration fehlt."
+        );
         return;
     }
 
@@ -419,18 +637,44 @@ function onYouTubeIframeAPIReady() {
         },
 
         events: {
-            onReady: function () {
-                playerReady = true;
-                updateStartButton(player.getPlayerState());
+            onReady: async function () {
+                // Erst Startposition und Metadaten laden.
+                // So können wir auch prüfen, ob die
+                // gewünschte Daily-Songnummer existiert.
+                await Promise.all([
+                    dailyStartPromise,
+                    metadataPromise
+                ]);
 
-                // Playlist ohne Autoplay vorbereiten.
-                // YouTube kann dadurch bereits vor dem Start
-                // Metadaten zum ersten Song liefern.
+                if (
+                    isDaily &&
+                    playlistMetadata &&
+                    Array.isArray(playlistMetadata.songs) &&
+                    dailyStartIndex >= playlistMetadata.songs.length
+                ) {
+                    console.warn(
+                        "KanalRadio Daily: Ungültiger Startsong. " +
+                        "Verwende Song 1."
+                    );
+
+                    dailyStartIndex = 0;
+                }
+
+                pendingSongIndex = dailyStartIndex;
+
+                // Playlist ohne Autoplay vorbereiten
                 player.cuePlaylist({
                     listType: "playlist",
                     list: config.playlist,
-                    index: 0
+                    index: dailyStartIndex
                 });
+
+                initialPlaylistPrepared = true;
+                playerReady = true;
+
+                updateStartButton(
+                    player.getPlayerState()
+                );
 
                 updateVideoTitle();
             },
@@ -444,7 +688,9 @@ function onYouTubeIframeAPIReady() {
                     ")"
                 );
 
-                if (event.data === YT.PlayerState.PLAYING) {
+                if (
+                    event.data === YT.PlayerState.PLAYING
+                ) {
                     hasPlaybackStarted = true;
                     initialStartRequested = true;
 
@@ -452,7 +698,9 @@ function onYouTubeIframeAPIReady() {
                     adPlaybackStartedByUs = false;
                 }
 
-                if (event.data === YT.PlayerState.ENDED) {
+                if (
+                    event.data === YT.PlayerState.ENDED
+                ) {
                     adPausedByUs = false;
                     adPlaybackStartedByUs = false;
                     initialStartRequested = false;
@@ -462,26 +710,37 @@ function onYouTubeIframeAPIReady() {
                 updateVideoTitle();
 
                 // Umami-Songstatistik
-                if (event.data === YT.PlayerState.PLAYING) {
-                    const video = event.target.getVideoData();
+                if (
+                    event.data === YT.PlayerState.PLAYING
+                ) {
+                    const video =
+                        event.target.getVideoData();
 
                     if (
                         video.video_id &&
                         video.video_id !== lastTrackedVideoId
                     ) {
-                        lastTrackedVideoId = video.video_id;
+                        lastTrackedVideoId =
+                            video.video_id;
 
-                        if (typeof window.umami !== "undefined") {
-                            window.umami.track("song_start", {
-                                kanal: config.kanal,
-                                video_id: video.video_id,
-                                titel: video.title
-                            });
+                        if (
+                            typeof window.umami !== "undefined"
+                        ) {
+                            window.umami.track(
+                                "song_start",
+                                {
+                                    kanal: config.kanal,
+                                    video_id: video.video_id,
+                                    titel: video.title
+                                }
+                            );
                         }
                     }
                 }
 
-                if (event.data === YT.PlayerState.ENDED) {
+                if (
+                    event.data === YT.PlayerState.ENDED
+                ) {
                     lastTrackedVideoId = null;
                 }
             }
@@ -506,14 +765,18 @@ function describePlayerState(state) {
 // Start / Pause
 function togglePlayback() {
     if (!playerReady) {
-        alert("Der Player lädt noch. Bitte erneut versuchen.");
+        alert(
+            "Der Player lädt noch. Bitte erneut versuchen."
+        );
         return;
     }
 
     const before = player.getPlayerState();
     let action;
 
-    console.group("[KanalRadio Diagnose 5] Taste gedrückt");
+    console.group(
+        "[KanalRadio Diagnose 5] Taste gedrückt"
+    );
 
     console.log(
         "Status vorher:",
@@ -549,7 +812,9 @@ function togglePlayback() {
             adPlaybackStartedByUs = false;
         }
 
-    } else if (before === YT.PlayerState.PLAYING) {
+    } else if (
+        before === YT.PlayerState.PLAYING
+    ) {
         action = "pauseVideo";
 
         adPausedByUs = false;
@@ -568,9 +833,13 @@ function togglePlayback() {
     }
 
     const immediately = player.getPlayerState();
+
     updateStartButton(immediately);
 
-    console.log("Ausgeführter Befehl:", action);
+    console.log(
+        "Ausgeführter Befehl:",
+        action
+    );
 
     console.log(
         "Status direkt danach:",
@@ -601,7 +870,9 @@ function togglePlayback() {
 // Vorheriger / nächster Song
 function jumpSongs(offset) {
     if (!playerReady) {
-        alert("Der Player lädt noch. Bitte erneut versuchen.");
+        alert(
+            "Der Player lädt noch. Bitte erneut versuchen."
+        );
         return;
     }
 
@@ -613,7 +884,9 @@ function jumpSongs(offset) {
         playlist.length === 0 ||
         currentIndex < 0
     ) {
-        alert("Die Playlist ist noch nicht bereit.");
+        alert(
+            "Die Playlist ist noch nicht bereit."
+        );
         return;
     }
 
@@ -635,6 +908,7 @@ function jumpSongs(offset) {
 
     displayedPlaylistIndex = targetIndex;
     expectedVideoId = playlist[targetIndex];
+    pendingSongIndex = targetIndex;
 
     if (videoTitleElement) {
         videoTitleElement.textContent = "";
@@ -645,26 +919,41 @@ function jumpSongs(offset) {
 
 // Buttons verbinden
 if (startButton) {
-    startButton.addEventListener("click", togglePlayback);
+    startButton.addEventListener(
+        "click",
+        togglePlayback
+    );
 
     startButton.textContent = "⏯️ Start";
-    startButton.setAttribute("aria-label", "Start");
+    startButton.setAttribute(
+        "aria-label",
+        "Start"
+    );
     startButton.title = "Start";
 }
 
-const previousButton = document.getElementById("previous");
-const nextButton = document.getElementById("next");
+const previousButton =
+    document.getElementById("previous");
+
+const nextButton =
+    document.getElementById("next");
 
 if (previousButton) {
-    previousButton.addEventListener("click", function () {
-        jumpSongs(-1);
-    });
+    previousButton.addEventListener(
+        "click",
+        function () {
+            jumpSongs(-1);
+        }
+    );
 }
 
 if (nextButton) {
-    nextButton.addEventListener("click", function () {
-        jumpSongs(1);
-    });
+    nextButton.addEventListener(
+        "click",
+        function () {
+            jumpSongs(1);
+        }
+    );
 }
 
 // Coverbild frisch laden
@@ -675,6 +964,8 @@ if (cover) {
 
     if (coverUrl) {
         cover.src =
-            coverUrl.split("?")[0] + "?t=" + Date.now();
+            coverUrl.split("?")[0] +
+            "?t=" +
+            Date.now();
     }
 }
