@@ -380,6 +380,15 @@ function formatVideoTitle(video) {
     if (!video || !video.title) return "";
 
     const title = cleanSongTitle(video.title.trim());
+
+    // Sonderkorrektur: The Yardbirds – For Your Love
+    if (
+        title.toLowerCase().includes("for your love") &&
+        title.toLowerCase().includes("original")
+    ) {
+        return "The Yardbirds\nFor Your Love";
+    }
+    
     const channelArtist = correctArtistName(video.author);
 
     // Interpret steht bereits im Videotitel
