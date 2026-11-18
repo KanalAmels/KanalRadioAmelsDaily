@@ -4,7 +4,7 @@
  * Zentrale Radiosteuerung und Songstatistik
  *
  * - Interpret und Songtitel zweizeilig in Goldgelb (#facc15)
- * - Künstlerkorrekturen aus artists.json
+ * - Interpret- und Songkorrekturen aus song-corrections.json
  * - VEVO / Topic / Topik / Thema entfernen
  * - Titelinformationen vor dem Start aus playlist-metadata.json
  * - Daily-Startsong aus daily/daily-start.json
@@ -58,8 +58,8 @@ if (radioPlayerContainer) {
     );
 }
 
-// Künstlerkorrekturen
-let artistCorrections = {};
+// Zentrale Korrekturen für Interpreten und Songtitel
+let songCorrections = {};
 
 // Pfad der zentralen radio.js ermitteln
 const radioScript = Array.from(
@@ -72,8 +72,8 @@ const radioBaseUrl = radioScript
     ? new URL(".", radioScript.src)
     : new URL("../", document.baseURI);
 
-const artistsUrl = new URL(
-    "artists.json",
+const songCorrectionsUrl = new URL(
+    "song-corrections.json",
     radioBaseUrl
 ).href;
 
@@ -87,8 +87,8 @@ const dailyStartUrl = new URL(
     document.baseURI
 ).href;
 
-// Künstlerkorrekturen laden
-fetch(artistsUrl)
+// Interpret- und Songkorrekturen laden
+fetch(songCorrectionsUrl)
     .then(function (response) {
         if (!response.ok) {
             throw new Error("HTTP " + response.status);
@@ -101,13 +101,13 @@ fetch(artistsUrl)
             typeof data === "object" &&
             !Array.isArray(data)
         ) {
-            artistCorrections = data;
+            songCorrections = data;
             updateVideoTitle();
         }
     })
     .catch(function (error) {
         console.warn(
-            "KanalRadio: artists.json nicht geladen:",
+            "KanalRadio: song-corrections.json nicht geladen:",
             error.message
         );
     });
@@ -251,25 +251,25 @@ function normalizeArtistName(value) {
         .trim();
 }
 
-// Künstlernamen aus artists.json korrigieren
+// Künstlernamen aus song-corrections.json korrigieren
 function correctArtistName(author) {
-
     const cleaned = cleanArtistName(author);
     if (!cleaned) return "";
 
+    const key = Object.keys(songCorrections).find(function (name) {
+        return normalizeArtistName(name) === normalizeArtistName(cleaned);
+    });
 
-    const key = Object.keys(artistCorrections).find(
-        function (name) {
-            return normalizeArtistName(name) ===
-                normalizeArtistName(cleaned);
+    if (key) {
+        const correction = songCorrections[key];
+        if (
+            correction &&
+            typeof correction === "object" &&
+            !Array.isArray(correction) &&
+            typeof correction.artist === "string"
+        ) {
+            return correction.artist.trim() || cleaned;
         }
-    );
-
-    if (
-        key &&
-        typeof artistCorrections[key] === "string"
-    ) {
-        return artistCorrections[key].trim() || cleaned;
     }
 
     return cleaned;
@@ -381,14 +381,43 @@ function formatVideoTitle(video) {
 
     const title = cleanSongTitle(video.title.trim());
 
-    // Sonderkorrektur: The Yardbirds – For Your Love
-    if (
-        title.toLowerCase().includes("for your love") &&
-        title.toLowerCase().includes("original")
-    ) {
-        return "The Yardbirds\nFor Your Love";
+    // Songkorrekturen anhand des originalen oder bereinigten Videotitels.
+    // Exakter Treffer hat Vorrang vor Teiltreffern.
+    const normalizeTitleKey = function (value) {
+        return value.normalize("NFKC").toLocaleLowerCase()
+            .replace(/\s+/g, " ").trim();
+    };
+
+    const rawKey = normalizeTitleKey(video.title.trim());
+    const cleanedKey = normalizeTitleKey(title);
+    const keys = Object.keys(songCorrections).filter(function (key) {
+        const correction = songCorrections[key];
+        return correction && typeof correction === "object" &&
+            !Array.isArray(correction) &&
+            typeof correction.title === "string";
+    });
+
+    const correctionKey = keys.find(function (key) {
+        const normalized = normalizeTitleKey(key);
+        return normalized === rawKey || normalized === cleanedKey;
+    }) || keys.sort(function (a, b) {
+        return b.length - a.length;
+    }).find(function (key) {
+        const normalized = normalizeTitleKey(key);
+        return rawKey.includes(normalized) || cleanedKey.includes(normalized);
+    });
+
+    if (correctionKey) {
+        const correction = songCorrections[correctionKey];
+        const artist = normalizeCapitalization(
+            (typeof correction.artist === "string" && correction.artist.trim())
+                ? correction.artist.trim()
+                : correctArtistName(video.author)
+        );
+        const song = normalizeCapitalization(correction.title.trim());
+        if (song) return artist ? artist + "\n" + song : song;
     }
-    
+
     const channelArtist = correctArtistName(video.author);
 
     // Interpret steht bereits im Videotitel
