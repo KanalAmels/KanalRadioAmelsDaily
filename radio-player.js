@@ -70,6 +70,9 @@ function initializeYouTubePlayer() {
             },
 
             onStateChange: function (event) {
+                // Ein gültiges YouTube-Statusereignis bestätigt die Bereitschaft.
+                // Nicht allein auf den asynchronen onReady-Ablauf verlassen.
+                playerReady = true;
                 console.log(
                     "[KanalRadio Diagnose 5] Statuswechsel:",
                     describePlayerState(event.data),
@@ -120,9 +123,22 @@ function describePlayerState(state) {
     return names[state] || "UNKNOWN";
 }
 
+// Bereitschaft anhand der tatsächlichen YouTube-Player-API prüfen.
+// Der asynchrone onReady-Handler kann noch auf JSON-Daten warten,
+// obwohl der eingebettete YouTube-Player bereits bedienbar ist.
+function isRadioPlayerAvailable() {
+    return !!(
+        player &&
+        typeof player.getPlayerState === "function" &&
+        typeof player.playVideo === "function" &&
+        typeof player.pauseVideo === "function" &&
+        typeof player.getPlaylist === "function"
+    );
+}
+
 // Start / Pause
 function togglePlayback() {
-    if (!playerReady) {
+    if (!isRadioPlayerAvailable()) {
         alert(
             "Der Player lädt noch. Bitte erneut versuchen."
         );
@@ -227,7 +243,7 @@ function togglePlayback() {
 
 // Vorheriger / nächster Song
 function jumpSongs(offset) {
-    if (!playerReady) {
+    if (!isRadioPlayerAvailable()) {
         alert(
             "Der Player lädt noch. Bitte erneut versuchen."
         );
