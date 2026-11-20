@@ -1,24 +1,49 @@
-/* Kanal-Radio Amels | radio-ui.js | Modulare Version 19.11.2026 */
 
-// Titelanzeige
-const radioPlayerContainer = document.querySelector(".player");
+/*
+ * Kanal-Radio Amels
+ * radio-ui.js – Anzeige und Bedienelemente
+ * 20.11.2026
+ */
+
+// Titelanzeige erzeugen
+const radioPlayerContainer =
+    document.querySelector(".player");
+
 let videoTitleElement = null;
 
 if (radioPlayerContainer) {
-    videoTitleElement = document.createElement("div");
+    videoTitleElement =
+        document.createElement("div");
+
     videoTitleElement.id = "radio-video-title";
-    videoTitleElement.setAttribute("aria-live", "polite");
-    // Die Darstellung übernimmt vollständig die style.css.
-    const artistElement = document.createElement("div");
-    artistElement.className = "radio-song-artist";
+    videoTitleElement.setAttribute(
+        "aria-live",
+        "polite"
+    );
 
-    const songElement = document.createElement("div");
-    songElement.className = "radio-song-title";
+    const artistElement =
+        document.createElement("div");
 
-    const positionElement = document.createElement("div");
-    positionElement.className = "radio-song-position";
+    artistElement.className =
+        "radio-song-artist";
 
-    videoTitleElement.append(artistElement, songElement, positionElement);
+    const songElement =
+        document.createElement("div");
+
+    songElement.className =
+        "radio-song-title";
+
+    const positionElement =
+        document.createElement("div");
+
+    positionElement.className =
+        "radio-song-position";
+
+    videoTitleElement.append(
+        artistElement,
+        songElement,
+        positionElement
+    );
 
     radioPlayerContainer.insertAdjacentElement(
         "afterend",
@@ -26,11 +51,103 @@ if (radioPlayerContainer) {
     );
 }
 
-// Titelwechsel überwachen
+// Bestehende gemeinsame Anzeigevariablen
 let displayedPlaylistIndex = null;
 let expectedVideoId = null;
 
-// Metadaten für eine Songposition ermitteln
+// Buttons
+const startButton =
+    document.getElementById("start");
+
+const previousButton =
+    document.getElementById("previous");
+
+const nextButton =
+    document.getElementById("next");
+
+// Ladestatus
+let radioLoadingStatus = null;
+
+function createRadioLoadingStatus() {
+    if (radioLoadingStatus || !startButton) {
+        return;
+    }
+
+    const parent = startButton.parentElement;
+
+    if (!parent) return;
+
+    radioLoadingStatus =
+        document.createElement("div");
+
+    radioLoadingStatus.id =
+        "radio-loading-status";
+
+    radioLoadingStatus.setAttribute(
+        "role",
+        "status"
+    );
+
+    radioLoadingStatus.setAttribute(
+        "aria-live",
+        "polite"
+    );
+
+    radioLoadingStatus.style.fontSize = "13px";
+    radioLoadingStatus.style.textAlign = "center";
+    radioLoadingStatus.style.marginTop = "5px";
+    radioLoadingStatus.style.color = "#facc15";
+
+    parent.insertAdjacentElement(
+        "afterend",
+        radioLoadingStatus
+    );
+}
+
+function setRadioLoadingStatus(message) {
+    createRadioLoadingStatus();
+
+    if (radioLoadingStatus) {
+        radioLoadingStatus.textContent = message;
+    }
+}
+
+// Gemeinsame Bedienfreigabe
+function setRadioControlsEnabled(enabled) {
+    [
+        previousButton,
+        startButton,
+        nextButton
+    ].forEach(function (button) {
+        if (!button) return;
+
+        button.disabled = !enabled;
+        button.style.opacity =
+            enabled ? "" : "0.55";
+
+        button.style.cursor =
+            enabled ? "" : "wait";
+    });
+
+    if (!startButton) return;
+
+    if (!enabled) {
+        startButton.textContent = "⏳ Lädt …";
+
+        startButton.setAttribute(
+            "aria-label",
+            "Radio wird geladen"
+        );
+
+        startButton.title = "Radio wird geladen";
+    } else if (player) {
+        updateStartButton(
+            player.getPlayerState()
+        );
+    }
+}
+
+// Metadatensatz für eine Position
 function getMetadataSong(index) {
     if (
         !playlistMetadata ||
@@ -42,146 +159,159 @@ function getMetadataSong(index) {
     return playlistMetadata.songs[index] || null;
 }
 
-// Interpret und Songtitel aktualisieren
+// Titelanzeige leeren
+function clearRadioVideoTitle() {
+    if (!videoTitleElement) return;
+
+    [
+        ".radio-song-artist",
+        ".radio-song-title",
+        ".radio-song-position"
+    ].forEach(function (selector) {
+        const element =
+            videoTitleElement.querySelector(selector);
+
+        if (element) {
+            element.textContent = "";
+        }
+    });
+}
+
+// Titelanzeige aktualisieren
 function updateVideoTitle() {
     if (!videoTitleElement) return;
 
-    // Vor Playerbereitschaft:
-    // Daily verwendet seinen konfigurierten Startsong,
-    // alle anderen Sender verwenden Song 1.
-    if (isDaily && !dailyStartLoaded) {
+    // Vor bestätigter Initialisierung keine
+    // möglicherweise falschen Songdaten anzeigen.
+    if (
+        !playerReady ||
+        !player ||
+        !initialPlaylistPrepared
+    ) {
+        clearRadioVideoTitle();
         return;
     }
 
-    let index = isDaily ? dailyStartIndex : 0;
-    let currentVideoId = null;
-    let liveVideo = null;
+    let playlist;
+    let index;
+    let liveVideo;
+
+    try {
+        playlist = player.getPlaylist();
+        index = player.getPlaylistIndex();
+        liveVideo = player.getVideoData();
+    } catch (error) {
+        return;
+    }
 
     if (
-        playerReady &&
-        player &&
-        initialPlaylistPrepared
+        !Array.isArray(playlist) ||
+        playlist.length === 0 ||
+        !Number.isInteger(index) ||
+        index < 0 ||
+        index >= playlist.length
     ) {
-        const playlist = player.getPlaylist();
-        const playerIndex = player.getPlaylistIndex();
+        return;
+    }
 
-        if (
-            Array.isArray(playlist) &&
-            playerIndex >= 0 &&
-            playerIndex < playlist.length
-        ) {
-            index = playerIndex;
-            currentVideoId = playlist[index];
+    const videoId = playlist[index];
 
-        } else if (pendingSongIndex !== null) {
-            index = pendingSongIndex;
-        }
-
-        liveVideo = player.getVideoData();
+    // Bei einem laufenden Songwechsel darf nicht
+    // vorzeitig der alte Titel erscheinen.
+    if (
+        liveVideo &&
+        liveVideo.video_id &&
+        liveVideo.video_id !== videoId
+    ) {
+        clearRadioVideoTitle();
+        return;
     }
 
     const metadataSong = getMetadataSong(index);
 
-    const metadataMatches =
+    let source = null;
+
+    if (
         metadataSong &&
         metadataSong.title &&
-        (
-            !currentVideoId ||
-            metadataSong.videoId === currentVideoId
-        
-        );
-
-    let source = metadataMatches
-
-        ? metadataSong
-        : null;
-
-    // Originaldaten aus GitHub bevorzugen:
-    // Sie enthalten neben dem Titel auch den Kanalnamen.
-    // Die YouTube-Playerdaten sind unser Fallback.
-    if (
-        !source &&
+        metadataSong.videoId === videoId
+    ) {
+        source = metadataSong;
+    } else if (
         liveVideo &&
         liveVideo.title &&
-        liveVideo.video_id &&
-        (
-            !currentVideoId ||
-            liveVideo.video_id === currentVideoId
-        )
+        liveVideo.video_id === videoId
     ) {
         source = liveVideo;
     }
 
     if (!source) {
+        clearRadioVideoTitle();
         return;
     }
 
     const formatted = formatVideoTitle(source);
 
-    // Positionsanzeige nur im sichtbaren Titelbereich ergänzen.
-    // Die Originaldaten für Umami bleiben unverändert.
-    const playlistLength = (
-        playerReady && player && initialPlaylistPrepared &&
-        Array.isArray(player.getPlaylist()) &&
-        player.getPlaylist().length > 0
-    )
-        ? player.getPlaylist().length
-        : (playlistMetadata && Array.isArray(playlistMetadata.songs)
-            ? playlistMetadata.songs.length
-            : 0);
+    if (!formatted) {
+        clearRadioVideoTitle();
+        return;
+    }
 
-    if (formatted) {
-        const lines = formatted.split("\n");
-        const positionText = playlistLength > 0 &&
-            index >= 0 && index < playlistLength
-            ? "(" + (index + 1) + "/" + playlistLength + ")"
+    const lines = formatted.split("\n");
+
+    const artistText =
+        lines.length > 1
+            ? lines[0].trim()
             : "";
 
-        const artistElement = videoTitleElement.querySelector(
+    const songText =
+        lines.length > 1
+            ? lines.slice(1).join(" ").trim()
+            : lines[0].trim();
+
+    const positionText =
+        "(" + (index + 1) +
+        "/" + playlist.length + ")";
+
+    const artistElement =
+        videoTitleElement.querySelector(
             ".radio-song-artist"
         );
-        const songElement = videoTitleElement.querySelector(
+
+    const songElement =
+        videoTitleElement.querySelector(
             ".radio-song-title"
         );
-        const positionElement = videoTitleElement.querySelector(
+
+    const positionElement =
+        videoTitleElement.querySelector(
             ".radio-song-position"
         );
 
-        if (artistElement && songElement && positionElement) {
-            const artistText = lines.length > 1 ? lines[0].trim() : "";
-            const songText = lines.length > 1
-                ? lines.slice(1).join(" ").trim()
-                : lines[0].trim();
+    if (artistElement) {
+        artistElement.textContent = artistText;
+    }
 
-            if (artistElement.textContent !== artistText) {
-                artistElement.textContent = artistText;
-            }
-            if (songElement.textContent !== songText) {
-                songElement.textContent = songText;
-            }
-            if (positionElement.textContent !== positionText) {
-                positionElement.textContent = positionText;
-            }
-        }
+    if (songElement) {
+        songElement.textContent = songText;
+    }
+
+    if (positionElement) {
+        positionElement.textContent = positionText;
     }
 
     displayedPlaylistIndex = index;
-
-    expectedVideoId =
-        currentVideoId ||
-        source.videoId ||
-        source.video_id ||
-        null;
+    expectedVideoId = videoId;
 }
 
-// Titel regelmäßig aktualisieren
+// Titel regelmäßig synchronisieren
 setInterval(updateVideoTitle, 1000);
 
-// Startbutton
-const startButton = document.getElementById("start");
-
+// Startbutton beschriften
 function updateStartButton(state) {
-    if (!startButton) return;
+    if (!startButton || !playerReady) {
+        return;
+    }
 
     let label;
     let symbol;
@@ -190,14 +320,12 @@ function updateStartButton(state) {
         if (adPausedByUs) {
             label = "Start";
             symbol = "▶️";
-
         } else if (
             adPlaybackStartedByUs ||
             initialStartRequested
         ) {
             label = "Pause";
             symbol = "⏸️";
-
         } else {
             label = "Start";
             symbol = "⏯️";
@@ -242,7 +370,7 @@ function updateStartButton(state) {
     startButton.title = label;
 }
 
-// Coverbild frisch laden
+// Coverbild wie bisher frisch laden
 const cover = document.querySelector(".cover");
 
 if (cover) {
@@ -255,3 +383,6 @@ if (cover) {
             Date.now();
     }
 }
+
+// Bedienelemente zunächst sperren
+setRadioControlsEnabled(false);
