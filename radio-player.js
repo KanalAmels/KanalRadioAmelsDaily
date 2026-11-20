@@ -1,3 +1,4 @@
+
 /* Kanal-Radio Amels | radio-player.js | Modulare Version 19.11.2026 */
 
 // YouTube-Player initialisieren
@@ -20,8 +21,9 @@ function initializeYouTubePlayer() {
         height: "100%",
 
         playerVars: {
-            listType: "playlist",
-            list: config.playlist,
+            // Playlist erst nach dem Laden der Daily-Startposition setzen.
+            // Eine Playlist hier UND spaeter per cuePlaylist zu laden
+            // kann zwei konkurrierende YouTube-Ladevorgaenge ausloesen.
             playsinline: 1,
             rel: 0
         },
