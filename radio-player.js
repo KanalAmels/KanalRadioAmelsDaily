@@ -11,6 +11,8 @@
  * LAST, START/PAUSE und NEXT werden
  * erst nach erfolgreicher Initialisierung
  * freigegeben.
+ *
+ * LAST/NEXT: Zyklische Playlist-Navigation.
  */
 
 const RADIO_READY_TIMEOUT = 20000;
@@ -213,8 +215,6 @@ function checkRadioInitialization() {
             ? videoData.video_id
             : null;
 
-    // Eine fremde Video-ID bedeutet:
-    // Die Playlistposition ist noch nicht synchron.
     if (
         actualId &&
         expectedId &&
@@ -223,16 +223,11 @@ function checkRadioInitialization() {
         return;
     }
 
-    // YouTube muss das gewünschte Video bestätigen.
-    // Die reine Positionszahl reicht nicht aus.
     if (!actualId || actualId !== expectedId) {
         return;
     }
 
-    // Die API muss einen gültigen Playerstatus liefern.
-    if (
-        typeof state !== "number"
-    ) {
+    if (typeof state !== "number") {
         return;
     }
 
@@ -281,9 +276,6 @@ function beginRadioReadinessCheck() {
         RADIO_READY_INTERVAL
     );
 
-    // Falls YouTube den ersten Cue-Aufruf
-    // nicht vollständig übernommen hat,
-    // die Playlist begrenzt erneut vorbereiten.
     radioRetryTimer = setInterval(function () {
         if (
             radioInitializationFinished ||
@@ -351,9 +343,6 @@ function initializeYouTubePlayer() {
     setRadioControlsEnabled(false);
     setRadioLoadingStatus("Playlist wird geladen …");
 
-    // Wie in der ursprünglichen funktionierenden
-    // radio.js wird die Playlist bereits beim
-    // Erzeugen des YouTube-Players übergeben.
     player = new YT.Player("radio", {
         width: "100%",
         height: "100%",
@@ -372,14 +361,10 @@ function initializeYouTubePlayer() {
                 );
 
                 try {
-                    // Daily-Start und Metadaten
-                    // müssen zuerst bekannt sein.
                     radioExpectedStartIndex =
                         await prepareRadioStartData();
 
-                    if (
-                        radioInitializationFailed
-                    ) {
+                    if (radioInitializationFailed) {
                         return;
                     }
 
@@ -388,12 +373,7 @@ function initializeYouTubePlayer() {
                         radioExpectedStartIndex + 1
                     );
 
-                    // Playlist ohne Autoplay
-                    // auf die Startposition setzen.
                     requestRadioPlaylist();
-
-                    // Erst anschließend tatsächliche
-                    // Bereitschaft prüfen.
                     beginRadioReadinessCheck();
 
                 } catch (error) {
@@ -440,7 +420,6 @@ function initializeYouTubePlayer() {
 
                 updateVideoTitle();
 
-                // Bestehendes Umami-Tracking
                 trackSongState(event, config);
             },
 
@@ -456,7 +435,6 @@ function initializeYouTubePlayer() {
 
 // --------------------------------------------------
 // START / PAUSE
-// Bestehende Werbesteuerung beibehalten
 // --------------------------------------------------
 
 function togglePlayback() {
@@ -470,9 +448,7 @@ function togglePlayback() {
     const before = player.getPlayerState();
     let action;
 
-    console.group(
-        "[KanalRadio] Start/Pause"
-    );
+    console.group("[KanalRadio] Start/Pause");
 
     console.log(
         "Status vorher:",
@@ -516,8 +492,7 @@ function togglePlayback() {
         player.playVideo();
     }
 
-    const immediately =
-        player.getPlayerState();
+    const immediately = player.getPlayerState();
 
     updateStartButton(immediately);
 
@@ -548,7 +523,7 @@ function togglePlayback() {
 }
 
 // --------------------------------------------------
-// LAST / NEXT
+// LAST / NEXT – ZYKLISCHE NAVIGATION
 // --------------------------------------------------
 
 function jumpSongs(offset) {
@@ -575,8 +550,7 @@ function jumpSongs(offset) {
         return;
     }
 
-    const currentIndex =
-        player.getPlaylistIndex();
+    const currentIndex = player.getPlaylistIndex();
 
     if (
         !Number.isInteger(currentIndex) ||
@@ -590,13 +564,16 @@ function jumpSongs(offset) {
         return;
     }
 
-    const targetIndex = Math.max(
-        0,
-        Math.min(
-            playlist.length - 1,
-            currentIndex + offset
-        )
-    );
+    // NEU: Zyklischer Übergang
+    // 25/25 + NEXT -> 1/25
+    // 1/25 + LAST -> 25/25
+    const targetIndex =
+        (
+            (
+                currentIndex + offset
+            ) % playlist.length +
+            playlist.length
+        ) % playlist.length;
 
     if (targetIndex === currentIndex) {
         return;
@@ -610,8 +587,6 @@ function jumpSongs(offset) {
     expectedVideoId = playlist[targetIndex];
     pendingSongIndex = targetIndex;
 
-    // Alten Titel entfernen, bis YouTube
-    // das neue Video bestätigt hat.
     clearRadioVideoTitle();
 
     console.log(
