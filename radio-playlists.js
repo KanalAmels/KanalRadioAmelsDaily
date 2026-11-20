@@ -1,16 +1,26 @@
-/* Kanal-Radio Amels | radio-playlists.js | Modulare Version 19.11.2026 */
 
-let player;
+/*
+ * Kanal-Radio Amels
+ * radio-playlists.js – Playlistverwaltung
+ * 20.11.2026
+ *
+ * Gemeinsamer Zustand und Datenbeschaffung.
+ * Der Player wird ausschließlich in
+ * radio-player.js initialisiert.
+ */
+
+// Gemeinsamer Playerzustand
+let player = null;
 let playerReady = false;
 let lastTrackedVideoId = null;
 let hasPlaybackStarted = false;
 
-// Werbesteuerung
+// Bestehende Werbesteuerung
 let adPausedByUs = false;
 let adPlaybackStartedByUs = false;
 let initialStartRequested = false;
 
-// Neue Metadaten- und Daily-Steuerung
+// Playlistdaten
 let playlistMetadata = null;
 let dailyStartIndex = 0;
 let initialPlaylistPrepared = false;
@@ -20,17 +30,19 @@ let dailyStartLoaded = false;
 const radioConfig = window.radioConfig || {};
 const isDaily = radioConfig.kanal === "Daily";
 
-// Pfad der zentralen radio.js ermitteln
+// Basisverzeichnis bestimmen
 const radioScript = Array.from(
     document.querySelectorAll("script[src]")
 ).find(function (script) {
-    return /(?:^|\/)radio\.js(?:[?#]|$)/.test(script.src);
+    return /(?:^|\/)radio\.js(?:[?#]|$)/
+        .test(script.src);
 });
 
 const radioBaseUrl = radioScript
     ? new URL(".", radioScript.src)
     : new URL("../", document.baseURI);
 
+// Korrekturen und Metadaten liegen neben radio.js
 const songCorrectionsUrl = new URL(
     "song-corrections.json",
     radioBaseUrl
@@ -41,19 +53,23 @@ const metadataUrl = new URL(
     radioBaseUrl
 ).href;
 
+// Daily-Start liegt weiterhin beim aufrufenden Sender
 const dailyStartUrl = new URL(
     "daily-start.json",
     document.baseURI
 ).href;
 
-// Neue Playlist-Metadaten laden
+// Metadaten laden
 const metadataPromise = fetch(metadataUrl, {
     cache: "no-store"
 })
     .then(function (response) {
         if (!response.ok) {
-            throw new Error("HTTP " + response.status);
+            throw new Error(
+                "HTTP " + response.status
+            );
         }
+
         return response.json();
     })
     .then(function (data) {
@@ -71,24 +87,32 @@ const metadataPromise = fetch(metadataUrl, {
             );
         } else {
             console.warn(
-                "KanalRadio: Keine Metadaten für Playlist:",
+                "KanalRadio: Keine Metadaten für:",
                 radioConfig.playlist
             );
         }
 
-        updateVideoTitle();
+        if (
+            typeof updateVideoTitle === "function"
+        ) {
+            updateVideoTitle();
+        }
+
+        return playlistMetadata;
     })
     .catch(function (error) {
         console.warn(
-            "KanalRadio: playlist-metadata.json nicht geladen:",
+            "KanalRadio: Metadaten nicht geladen:",
             error.message
         );
+
+        playlistMetadata = null;
+        return null;
     });
 
-// Daily-Startsong aus JSON lesen
+// Daily-Startposition lesen
 async function readDailyStartIndex() {
     if (!isDaily) {
-        dailyStartLoaded = true;
         return 0;
     }
 
@@ -98,7 +122,9 @@ async function readDailyStartIndex() {
         });
 
         if (!response.ok) {
-            throw new Error("HTTP " + response.status);
+            throw new Error(
+                "HTTP " + response.status
+            );
         }
 
         const data = await response.json();
@@ -108,51 +134,78 @@ async function readDailyStartIndex() {
             data.startSong < 1
         ) {
             throw new Error(
-                "startSong muss eine positive ganze Zahl sein."
+                "startSong muss eine positive " +
+                "ganze Zahl sein."
             );
         }
 
-        // YouTube zählt ab Index 0
-        let index = data.startSong - 1;
-
-        // Falls die Metadaten bereits geladen sind:
-        // Ungültige Songnummer abfangen
-        const songs = playlistMetadata &&
-            playlistMetadata.songs;
-
-        if (
-            Array.isArray(songs) &&
-            index >= songs.length
-        ) {
-            console.warn(
-                "KanalRadio Daily: Startsong liegt außerhalb " +
-                "der Playlist. Verwende Song 1."
-            );
-            index = 0;
-        }
+        const index = data.startSong - 1;
 
         console.log(
             "KanalRadio Daily: Startsong:",
-            index + 1
+            data.startSong
         );
 
         return index;
 
     } catch (error) {
         console.warn(
-            "KanalRadio Daily: Startsong nicht geladen. " +
-            "Verwende Song 1.",
+            "KanalRadio Daily: Startposition " +
+            "nicht geladen. Verwende Song 1.",
             error.message
         );
+
         return 0;
     }
 }
 
-// Daily-Konfiguration bereits beim Seitenaufruf laden
 const dailyStartPromise = readDailyStartIndex()
     .then(function (index) {
         dailyStartIndex = index;
         dailyStartLoaded = true;
-        updateVideoTitle();
+
+        if (
+            typeof updateVideoTitle === "function"
+        ) {
+            updateVideoTitle();
+        }
+
         return index;
     });
+
+// Einheitliche Vorbereitung der Startdaten
+async function prepareRadioStartData() {
+    await Promise.all([
+        metadataPromise,
+        dailyStartPromise
+    ]);
+
+    let index = isDaily ? dailyStartIndex : 0;
+
+    if (
+        !Number.isSafeInteger(index) ||
+        index < 0
+    ) {
+        index = 0;
+    }
+
+    const songs =
+        playlistMetadata &&
+        Array.isArray(playlistMetadata.songs)
+            ? playlistMetadata.songs
+            : null;
+
+    if (songs && index >= songs.length) {
+        console.warn(
+            "KanalRadio: Startposition außerhalb " +
+            "der Metadaten. Verwende Song 1."
+        );
+
+        index = 0;
+    }
+
+    dailyStartIndex = index;
+    pendingSongIndex = index;
+
+    return index;
+}
