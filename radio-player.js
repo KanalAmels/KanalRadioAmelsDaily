@@ -5,41 +5,45 @@
  * Ablauf:
  * 1. YouTube-Player erstellen
  * 2. Daily-Startposition und Metadaten abwarten
- * 3. Playlist einmalig laden
- * 4. Tatsächliche Playlistposition kontrollieren
- * 5. Erst danach LAST, START/PAUSE und NEXT freigeben
+ * 3. Playlist laden
+ * 4. Playlistposition und Video-ID überprüfen
+ * 5. Bei Abweichung Playlist erneut korrekt vorbereiten
+ * 6. Erst danach LAST, START/PAUSE und NEXT freigeben
  *
  * Keine vorgemerkten Tastendrücke.
  * Kein automatisches Abspielen beim Seitenaufruf.
  */
 
 const RADIO_READY_INTERVAL = 200;
-const RADIO_READY_TIMEOUT = 15000;
+const RADIO_READY_TIMEOUT = 20000;
 const RADIO_POSITION_RETRY_DELAY = 1200;
+const RADIO_MAX_POSITION_RETRIES = 3;
 
 let radioControlsReady = false;
 let radioInitializationFinished = false;
+let radioInitializationFailed = false;
 let radioExpectedStartIndex = 0;
 let radioReadyTimer = null;
 let radioReadyTimeout = null;
 let radioPositionTimer = null;
-let radioPositionCorrectionRequested = false;
-let radioInitializationFailed = false;
+let radioPositionCorrectionPending = false;
+let radioPositionRetryCount = 0;
+let radioPlaylistRequested = false;
 
-// Buttons ermitteln
 const previousButton =
     document.getElementById("previous");
 
 const nextButton =
     document.getElementById("next");
 
-// Ladestatus für den Benutzer
 let radioLoadingStatus = null;
 
+// --------------------------------------------------
+// Ladestatus
+// --------------------------------------------------
+
 function createRadioLoadingStatus() {
-    if (radioLoadingStatus) {
-        return;
-    }
+    if (radioLoadingStatus) return;
 
     if (!startButton || !startButton.parentElement) {
         return;
@@ -47,16 +51,8 @@ function createRadioLoadingStatus() {
 
     radioLoadingStatus = document.createElement("div");
     radioLoadingStatus.id = "radio-loading-status";
-
-    radioLoadingStatus.setAttribute(
-        "role",
-        "status"
-    );
-
-    radioLoadingStatus.setAttribute(
-        "aria-live",
-        "polite"
-    );
+    radioLoadingStatus.setAttribute("role", "status");
+    radioLoadingStatus.setAttribute("aria-live", "polite");
 
     radioLoadingStatus.style.fontSize = "13px";
     radioLoadingStatus.style.textAlign = "center";
@@ -77,47 +73,43 @@ function setRadioLoadingStatus(message) {
     }
 }
 
-// Alle drei Buttons gemeinsam sperren oder freigeben
+// --------------------------------------------------
+// Buttons sperren / freigeben
+// --------------------------------------------------
+
 function setRadioControlsEnabled(enabled) {
     radioControlsReady = enabled;
 
-    const buttons = [
+    [
         previousButton,
         startButton,
         nextButton
-    ];
-
-    buttons.forEach(function (button) {
-        if (!button) {
-            return;
-        }
+    ].forEach(function (button) {
+        if (!button) return;
 
         button.disabled = !enabled;
-
-        button.style.opacity =
-            enabled ? "" : "0.55";
-
-        button.style.cursor =
-            enabled ? "" : "wait";
+        button.style.opacity = enabled ? "" : "0.55";
+        button.style.cursor = enabled ? "" : "wait";
     });
 
-    if (startButton) {
-        if (!enabled) {
-            startButton.textContent = "⏳ Lädt …";
-            startButton.setAttribute(
-                "aria-label",
-                "Radio wird geladen"
-            );
-            startButton.title = "Radio wird geladen";
-        } else {
-            updateStartButton(
-                player.getPlayerState()
-            );
-        }
+    if (!startButton) return;
+
+    if (!enabled) {
+        startButton.textContent = "⏳ Lädt …";
+        startButton.setAttribute(
+            "aria-label",
+            "Radio wird geladen"
+        );
+        startButton.title = "Radio wird geladen";
+    } else {
+        updateStartButton(player.getPlayerState());
     }
 }
 
-// Player-API verfügbar?
+// --------------------------------------------------
+// YouTube-API prüfen
+// --------------------------------------------------
+
 function isRadioPlayerAvailable() {
     return !!(
         player &&
@@ -127,12 +119,10 @@ function isRadioPlayerAvailable() {
         typeof player.getPlaylist === "function" &&
         typeof player.getPlaylistIndex === "function" &&
         typeof player.playVideoAt === "function" &&
-        typeof player.cuePlaylist === "function" &&
-        typeof player.cueVideoAt === "function"
+        typeof player.cuePlaylist === "function"
     );
 }
 
-// Tatsächliche Playlist auslesen
 function getRadioPlaylist() {
     if (!isRadioPlayerAvailable()) {
         return null;
@@ -154,7 +144,10 @@ function getRadioPlaylist() {
     }
 }
 
-// Timer der Initialisierung stoppen
+// --------------------------------------------------
+// Initialisierungstimer
+// --------------------------------------------------
+
 function clearRadioInitializationTimers() {
     clearInterval(radioReadyTimer);
     clearTimeout(radioReadyTimeout);
@@ -163,13 +156,15 @@ function clearRadioInitializationTimers() {
     radioReadyTimer = null;
     radioReadyTimeout = null;
     radioPositionTimer = null;
+    radioPositionCorrectionPending = false;
 }
 
-// Fehler beim Laden anzeigen
+// --------------------------------------------------
+// Fehlerbehandlung
+// --------------------------------------------------
+
 function failRadioInitialization(message) {
-    if (radioInitializationFinished) {
-        return;
-    }
+    if (radioInitializationFinished) return;
 
     radioInitializationFailed = true;
     radioInitializationFinished = true;
@@ -203,12 +198,25 @@ function failRadioInitialization(message) {
     );
 }
 
-// Initialisierung erfolgreich abschließen
+// --------------------------------------------------
+// Erfolgreiche Initialisierung
+// --------------------------------------------------
+
 function finishRadioInitialization() {
     if (
         radioInitializationFinished ||
         radioInitializationFailed
     ) {
+        return;
+    }
+
+    const playlist = getRadioPlaylist();
+
+    if (!playlist) return;
+
+    const actualIndex = player.getPlaylistIndex();
+
+    if (actualIndex !== radioExpectedStartIndex) {
         return;
     }
 
@@ -219,15 +227,9 @@ function finishRadioInitialization() {
     playerReady = true;
     initialPlaylistPrepared = true;
 
-    const playlist = getRadioPlaylist();
-    const actualIndex = player.getPlaylistIndex();
-
     pendingSongIndex = actualIndex;
-
-    if (playlist && actualIndex >= 0) {
-        displayedPlaylistIndex = actualIndex;
-        expectedVideoId = playlist[actualIndex];
-    }
+    displayedPlaylistIndex = actualIndex;
+    expectedVideoId = playlist[actualIndex];
 
     setRadioControlsEnabled(true);
     setRadioLoadingStatus("");
@@ -239,37 +241,38 @@ function finishRadioInitialization() {
         "Startposition:",
         actualIndex + 1,
         "Playlistlänge:",
-        playlist ? playlist.length : 0
+        playlist.length
     );
 }
 
-// Prüfen, ob Playlist und Startposition stimmen
+// --------------------------------------------------
+// Playlist und tatsächliches Video prüfen
+// --------------------------------------------------
+
 function checkRadioInitialization() {
     if (
         radioInitializationFinished ||
-        radioInitializationFailed
+        radioInitializationFailed ||
+        !radioPlaylistRequested
     ) {
         return;
     }
 
     const playlist = getRadioPlaylist();
 
-    if (!playlist) {
-        return;
-    }
+    if (!playlist) return;
 
     if (
         radioExpectedStartIndex < 0 ||
         radioExpectedStartIndex >= playlist.length
     ) {
         failRadioInitialization(
-            "Ungültige Startposition: " +
+            "Ungültige Startposition " +
             (radioExpectedStartIndex + 1) +
             " bei " +
             playlist.length +
             " Songs."
         );
-
         return;
     }
 
@@ -281,63 +284,92 @@ function checkRadioInitialization() {
         return;
     }
 
-    // Playlist ist vorhanden und YouTube bestätigt
-    // genau die gewünschte Startposition.
-    if (actualIndex === radioExpectedStartIndex) {
-        // Falls Metadaten vorhanden sind, zusätzlich
-        // prüfen, ob das ausgewählte Video stimmt.
-        const expectedVideoId =
-            playlist[radioExpectedStartIndex];
+    const expectedId =
+        playlist[radioExpectedStartIndex];
 
-        let videoData = null;
+    let actualId = null;
 
-        try {
-            videoData = player.getVideoData();
-        } catch (error) {
-            // Die Playlistposition ist bereits bekannt.
+    try {
+        if (typeof player.getVideoData === "function") {
+            const videoData = player.getVideoData();
+
+            actualId =
+                videoData && videoData.video_id
+                    ? videoData.video_id
+                    : null;
         }
-
-        const actualVideoId =
-            videoData && videoData.video_id
-                ? videoData.video_id
-                : null;
-
-        // Ein abweichendes Video darf nicht als
-        // vollständig initialisiert gelten.
-        if (
-            actualVideoId &&
-            expectedVideoId &&
-            actualVideoId !== expectedVideoId
-        ) {
-            requestRadioPositionCorrection();
-            return;
-        }
-
-        finishRadioInitialization();
+    } catch (error) {
         return;
     }
 
-    // YouTube hat eine andere Position ausgewählt.
-    // Einmalig die korrekte Position anfordern.
-    requestRadioPositionCorrection();
+    // Die Playlistposition muss stimmen.
+    if (actualIndex !== radioExpectedStartIndex) {
+        requestRadioPositionCorrection();
+        return;
+    }
+
+    // Wenn YouTube bereits eine Video-ID meldet,
+    // muss auch diese zur Playlistposition passen.
+    if (
+        actualId &&
+        expectedId &&
+        actualId !== expectedId
+    ) {
+        requestRadioPositionCorrection();
+        return;
+    }
+
+    // Keine Freigabe während einer laufenden Korrektur.
+    if (radioPositionCorrectionPending) {
+        return;
+    }
+
+    // Eine noch fehlende Video-ID kann bedeuten,
+    // dass YouTube das Video noch vorbereitet.
+    // Bei Startposition 0 ist der bestätigte
+    // Playlistindex bereits ein wichtiges Signal.
+    // Bei Daily-Startpositionen > 0 warten wir
+    // zusätzlich auf die passende Video-ID.
+    if (
+        radioExpectedStartIndex > 0 &&
+        expectedId &&
+        !actualId
+    ) {
+        return;
+    }
+
+    finishRadioInitialization();
 }
 
-// Startposition ohne Autoplay korrigieren
+// --------------------------------------------------
+// Startposition korrigieren
+// --------------------------------------------------
+
 function requestRadioPositionCorrection() {
     if (
-        radioPositionCorrectionRequested ||
+        radioPositionCorrectionPending ||
         radioInitializationFinished ||
         radioInitializationFailed
     ) {
         return;
     }
 
-    radioPositionCorrectionRequested = true;
+    if (
+        radioPositionRetryCount >=
+        RADIO_MAX_POSITION_RETRIES
+    ) {
+        return;
+    }
+
+    radioPositionCorrectionPending = true;
+    radioPositionRetryCount++;
 
     console.warn(
-        "KanalRadio: YouTube-Startposition weicht ab.",
+        "KanalRadio: Startposition stimmt nicht.",
         "Erwartet:",
-        radioExpectedStartIndex + 1
+        radioExpectedStartIndex + 1,
+        "Korrekturversuch:",
+        radioPositionRetryCount
     );
 
     radioPositionTimer = setTimeout(function () {
@@ -345,6 +377,7 @@ function requestRadioPositionCorrection() {
             radioInitializationFinished ||
             radioInitializationFailed
         ) {
+            radioPositionCorrectionPending = false;
             return;
         }
 
@@ -354,16 +387,28 @@ function requestRadioPositionCorrection() {
             !playlist ||
             radioExpectedStartIndex >= playlist.length
         ) {
+            radioPositionCorrectionPending = false;
             return;
         }
 
         try {
-            // cueVideoAt wählt das Video aus,
-            // ohne die Wiedergabe automatisch zu starten.
-            player.cueVideoAt(radioExpectedStartIndex);
+            /*
+             * WICHTIG:
+             * cueVideoAt() existiert nicht in der
+             * YouTube-IFrame-API.
+             *
+             * Stattdessen wird die Playlist mit dem
+             * gewünschten Index erneut vorbereitet.
+             * cuePlaylist() startet keine Wiedergabe.
+             */
+            player.cuePlaylist({
+                listType: "playlist",
+                list: window.radioConfig.playlist,
+                index: radioExpectedStartIndex
+            });
 
             console.log(
-                "KanalRadio: Startposition erneut gesetzt:",
+                "KanalRadio: Playlistposition erneut angefordert:",
                 radioExpectedStartIndex + 1
             );
 
@@ -372,11 +417,17 @@ function requestRadioPositionCorrection() {
                 "KanalRadio: Positionskorrektur fehlgeschlagen:",
                 error
             );
+        } finally {
+            radioPositionCorrectionPending = false;
         }
+
     }, RADIO_POSITION_RETRY_DELAY);
 }
 
+// --------------------------------------------------
 // YouTube-Player initialisieren
+// --------------------------------------------------
+
 function initializeYouTubePlayer() {
     const config = window.radioConfig;
 
@@ -394,8 +445,10 @@ function initializeYouTubePlayer() {
     radioControlsReady = false;
     radioInitializationFinished = false;
     radioInitializationFailed = false;
-    radioPositionCorrectionRequested = false;
     radioExpectedStartIndex = 0;
+    radioPositionRetryCount = 0;
+    radioPositionCorrectionPending = false;
+    radioPlaylistRequested = false;
 
     playerReady = false;
     initialPlaylistPrepared = false;
@@ -410,8 +463,6 @@ function initializeYouTubePlayer() {
         height: "100%",
 
         playerVars: {
-            // Playlist NICHT bereits hier laden.
-            // Sie wird erst nach den Startdaten gesetzt.
             playsinline: 1,
             rel: 0
         },
@@ -423,20 +474,23 @@ function initializeYouTubePlayer() {
                 );
 
                 try {
-                    // Zuerst alle benötigten Daten laden
                     await Promise.all([
                         dailyStartPromise,
                         metadataPromise
                     ]);
 
-                    if (radioInitializationFailed) {
-                        return;
-                    }
+                    if (radioInitializationFailed) return;
 
                     radioExpectedStartIndex =
                         isDaily ? dailyStartIndex : 0;
 
-                    // Startposition anhand der Metadaten prüfen
+                    if (
+                        !Number.isInteger(radioExpectedStartIndex) ||
+                        radioExpectedStartIndex < 0
+                    ) {
+                        radioExpectedStartIndex = 0;
+                    }
+
                     if (
                         isDaily &&
                         playlistMetadata &&
@@ -457,22 +511,20 @@ function initializeYouTubePlayer() {
                         radioExpectedStartIndex;
 
                     console.log(
-                        "KanalRadio: Playlist laden.",
+                        "KanalRadio: Playlist vorbereiten.",
                         "Startsong:",
                         radioExpectedStartIndex + 1
                     );
 
-                    // Playlist genau einmal vorbereiten
                     player.cuePlaylist({
                         listType: "playlist",
                         list: config.playlist,
                         index: radioExpectedStartIndex
                     });
 
+                    radioPlaylistRequested = true;
                     initialPlaylistPrepared = true;
 
-                    // Ab jetzt prüfen, ob YouTube die
-                    // Playlist und Startposition übernommen hat.
                     radioReadyTimer = setInterval(
                         checkRadioInitialization,
                         RADIO_READY_INTERVAL
@@ -484,14 +536,13 @@ function initializeYouTubePlayer() {
                                 failRadioInitialization(
                                     "YouTube hat Playlist und " +
                                     "Startposition nicht innerhalb " +
-                                    "von 15 Sekunden bestätigt."
+                                    "von 20 Sekunden bestätigt."
                                 );
                             }
                         },
                         RADIO_READY_TIMEOUT
                     );
 
-                    // Auch unmittelbar einmal prüfen
                     checkRadioInitialization();
 
                 } catch (error) {
@@ -510,8 +561,6 @@ function initializeYouTubePlayer() {
                     ")"
                 );
 
-                // Statuswechsel können während der
-                // Initialisierung auftreten.
                 if (!radioControlsReady) {
                     checkRadioInitialization();
                 }
@@ -552,7 +601,10 @@ function initializeYouTubePlayer() {
     });
 }
 
-// YouTube-Status lesbar darstellen
+// --------------------------------------------------
+// YouTube-Status
+// --------------------------------------------------
+
 function describePlayerState(state) {
     const names = {
         [-1]: "UNSTARTED",
@@ -566,7 +618,10 @@ function describePlayerState(state) {
     return names[state] || "UNKNOWN";
 }
 
+// --------------------------------------------------
 // Start / Pause
+// --------------------------------------------------
+
 function togglePlayback() {
     if (
         !radioControlsReady ||
@@ -656,9 +711,7 @@ function togglePlayback() {
     console.groupEnd();
 
     setTimeout(function () {
-        if (!radioControlsReady) {
-            return;
-        }
+        if (!radioControlsReady) return;
 
         const later = player.getPlayerState();
 
@@ -673,7 +726,10 @@ function togglePlayback() {
     }, 1000);
 }
 
+// --------------------------------------------------
 // Vorheriger / nächster Song
+// --------------------------------------------------
+
 function jumpSongs(offset) {
     if (
         !radioControlsReady ||
@@ -725,7 +781,6 @@ function jumpSongs(offset) {
     expectedVideoId = playlist[targetIndex];
     pendingSongIndex = targetIndex;
 
-    // Titelinhalte leeren, DOM-Elemente erhalten
     if (videoTitleElement) {
         const artistElement =
             videoTitleElement.querySelector(
@@ -758,7 +813,10 @@ function jumpSongs(offset) {
     player.playVideoAt(targetIndex);
 }
 
+// --------------------------------------------------
 // Buttons verbinden
+// --------------------------------------------------
+
 if (startButton) {
     startButton.addEventListener(
         "click",
@@ -784,7 +842,5 @@ if (nextButton) {
     );
 }
 
-// Bereits beim Laden sperren.
-// Die Freigabe erfolgt ausschließlich nach
-// erfolgreicher Playlist-Initialisierung.
+// Bis zur bestätigten Initialisierung gesperrt
 setRadioControlsEnabled(false);
