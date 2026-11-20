@@ -1,68 +1,157 @@
 
-/* Kanal-Radio Amels | radio.js | Modulare Version 19.11.2026 */
-
 /*
- * Kanal-Radio Amels – zentraler Einstiegspunkt.
- * Die fünf Funktionsdateien werden automatisch aus demselben Ordner geladen.
- * Vorhandene HTML-Verweise auf radio.js bleiben unverändert.
- * Klassische Scripts (keine ES-Module), damit die bestehenden globalen
- * Zustände und die YouTube-IFrame-API kompatibel bleiben.
+ * Kanal-Radio Amels
+ * radio.js – Zentrale Modulsteuerung
+ * 20.11.2026
+ *
+ * Lädt alle fünf Module in festgelegter Reihenfolge.
+ * Initialisiert den YouTube-Player genau einmal.
+ * Die bestehende HTML-Einbindung bleibt unverändert.
  */
+
 (function () {
     "use strict";
 
-    const script = document.currentScript || Array.from(
-        document.querySelectorAll("script[src]")
-    ).find(function (item) {
-        return /(?:^|\/)radio\.js(?:[?#]|$)/.test(item.src);
-    });
-    const base = script ? new URL(".", script.src) : new URL("../", document.baseURI);
-    const parts = [
+    const currentScript =
+        document.currentScript ||
+        Array.from(
+            document.querySelectorAll("script[src]")
+        ).find(function (script) {
+            return /(?:^|\/)radio\.js(?:[?#]|$)/
+                .test(script.src);
+        });
+
+    const radioBase = currentScript
+        ? new URL(".", currentScript.src)
+        : new URL("../", document.baseURI);
+
+    const modules = [
         "radio-playlists.js",
         "radio-titles.js",
         "radio-ui.js",
         "radio-tracking.js",
         "radio-player.js"
     ];
-    let scriptsReady = false;
-    let youtubeReady = !!(window.YT && window.YT.Player);
-    let playerInitialized = false;
 
-    // Callback sofort registrieren, auch wenn YouTube schneller lädt.
+    let modulesLoaded = false;
+    let youtubeLoaded = !!(
+        window.YT &&
+        typeof window.YT.Player === "function"
+    );
+    let initializationStarted = false;
+
+    // Bereits vorhandenen Callback nicht verlieren.
+    const previousYouTubeCallback =
+        window.onYouTubeIframeAPIReady;
+
     window.onYouTubeIframeAPIReady = function () {
-        youtubeReady = true;
-        maybeInitialize();
+        youtubeLoaded = true;
+
+        if (
+            typeof previousYouTubeCallback === "function"
+        ) {
+            try {
+                previousYouTubeCallback();
+            } catch (error) {
+                console.warn(
+                    "KanalRadio: Vorheriger YouTube-Callback:",
+                    error
+                );
+            }
+        }
+
+        startRadioWhenReady();
     };
 
-    function maybeInitialize() {
-        if (!scriptsReady || !youtubeReady || playerInitialized) return;
-        playerInitialized = true;
-        initializeYouTubePlayer();
+    function startRadioWhenReady() {
+        if (
+            !modulesLoaded ||
+            !youtubeLoaded ||
+            initializationStarted
+        ) {
+            return;
+        }
+
+        if (
+            !window.YT ||
+            typeof window.YT.Player !== "function"
+        ) {
+            return;
+        }
+
+        initializationStarted = true;
+
+        try {
+            initializeYouTubePlayer();
+        } catch (error) {
+            initializationStarted = false;
+
+            console.error(
+                "KanalRadio: Playerstart fehlgeschlagen:",
+                error
+            );
+        }
     }
 
-    function loadPart(name) {
+    function loadModule(filename) {
         return new Promise(function (resolve, reject) {
-            const element = document.createElement("script");
-            element.src = new URL(name, base).href;
-            element.async = false;
-            element.onload = resolve;
-            element.onerror = function () {
-                reject(new Error("KanalRadio: " + name + " konnte nicht geladen werden."));
+            const script = document.createElement("script");
+
+            const url = new URL(filename, radioBase);
+
+            // Alle Module eines Seitenaufrufs frisch laden.
+            // Verhindert gemischte alte/neue Modulstände.
+            url.searchParams.set(
+                "krv",
+                "20261120-2"
+            );
+
+            script.src = url.href;
+            script.async = false;
+
+            script.onload = function () {
+                resolve();
             };
-            document.head.appendChild(element);
+
+            script.onerror = function () {
+                reject(
+                    new Error(
+                        "Modul konnte nicht geladen werden: " +
+                        filename
+                    )
+                );
+            };
+
+            document.head.appendChild(script);
         });
     }
 
-    (async function () {
+    async function loadAllModules() {
         try {
-            for (const name of parts) {
-                await loadPart(name);
+            for (const filename of modules) {
+                await loadModule(filename);
             }
-            scriptsReady = true;
-            youtubeReady = youtubeReady || !!(window.YT && window.YT.Player);
-            maybeInitialize();
+
+            modulesLoaded = true;
+
+            youtubeLoaded = !!(
+                window.YT &&
+                typeof window.YT.Player === "function"
+            );
+
+            console.log(
+                "KanalRadio: Alle Module geladen."
+            );
+
+            startRadioWhenReady();
+
         } catch (error) {
-            console.error(error);
+            console.error(
+                "KanalRadio: Modulfehler:",
+                error
+            );
         }
-    })();
+    }
+
+    loadAllModules();
 })();
