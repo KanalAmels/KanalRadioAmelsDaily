@@ -39,9 +39,10 @@ jobs:
           import urllib.parse
           import urllib.request
 
-          # Bestehende sieben Playlists
+          # Jahrzehnt-Playlists
           playlists = {
               "1960th_radio": "PLPzm8oQAlWx0",
+              "1970th_radio": "PLVIfkpDEAivc",
               "1990th_radio": "PLdaYDPTMIOWM",
               "1990th_dance": "PLEi-YU-8ROTg",
               "2000th_radio": "PLJFKda6JaE-E",
@@ -126,7 +127,7 @@ jobs:
                   )
 
           # -------------------------------------------------
-          # 1. Bisherige Songzahlen unverändert ermitteln
+          # 1. Songzahlen ermitteln
           # -------------------------------------------------
 
           result = youtube_request(
@@ -282,7 +283,7 @@ jobs:
                       )
 
                       if not video_id:
-                        continue
+                          continue
 
                       details[video_id] = {
                           "videoId": video_id,
