@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -46,7 +47,7 @@
       <a class="button" href="https://kanalamels.github.io/KanalRadioAmelsDaily/" target="_blank" rel="noopener noreferrer">▶ Kanal-Radio Daily</a>
       <a class="button github" href="https://github.com/kanalamels/KanalRadioAmelsDaily" target="_blank" rel="noopener noreferrer">💻 GitHub Daily</a>
       <a class="button chatgpt" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">✦ ChatGPT</a>
-      <a class="button youtube" href="https://youtube.com/playlist?list=PLUu1efwCKMCM&amp;si=jpJgKJ1-QKMPTP59" target="_blank" rel="noopener noreferrer">▶ YouTube Daily</a>
+      <a class="button youtube" id="youtube-daily-link" href="#" aria-disabled="true" target="_blank" rel="noopener noreferrer">▶ YouTube Daily</a>
       <button class="spotify" type="button" disabled title="Spotify folgt später">♫ Spotify Dummy</button>
 
       <a class="button" href="https://kanalamels.github.io/KanalRadioAmelsDevel/" target="_blank" rel="noopener noreferrer">▶ Kanal-Radio Devel</a>
@@ -65,6 +66,7 @@
 
     <small>Die Einstellung gilt für diesen Browser und diese Website.</small>
   </main>
+
   <script>
     function updateStatus() {
       const disabled = localStorage.getItem("umami.disabled") === "1";
@@ -72,15 +74,70 @@
         ? "✅ Deine Besuche werden nicht gezählt."
         : "⚠️ Deine Besuche werden derzeit gezählt.";
     }
+
     function disableTracking() {
       localStorage.setItem("umami.disabled", "1");
       updateStatus();
     }
+
     function enableTracking() {
       localStorage.removeItem("umami.disabled");
       updateStatus();
     }
+
+    async function updateYoutubeDailyLink() {
+      const link = document.getElementById("youtube-daily-link");
+
+      try {
+        const response = await fetch(
+          "../json/playlist-metadata.json",
+          { cache: "no-store" }
+        );
+
+        if (!response.ok) {
+          throw new Error("Playlist-Metadaten konnten nicht geladen werden.");
+        }
+
+        const data = await response.json();
+
+        const daily = Object.entries(data.playlists || {}).find(
+          ([id, playlist]) => playlist && playlist.name === "Daily"
+        );
+
+        if (!daily) {
+          throw new Error("Daily-Playlist nicht gefunden.");
+        }
+
+        const playlistId = daily[0];
+
+        if (!/^[A-Za-z0-9_-]{5,100}$/.test(playlistId)) {
+          throw new Error("Ungültige Playlist-ID.");
+        }
+
+        link.href =
+          "https://www.youtube.com/playlist?list=" +
+          encodeURIComponent(playlistId);
+
+        link.removeAttribute("aria-disabled");
+
+      } catch (error) {
+        console.error(
+          "YouTube-Daily-Link konnte nicht aktualisiert werden:",
+          error
+        );
+        link.title = "Daily-Playlist derzeit nicht verfügbar";
+      }
+    }
+
+    document.getElementById("youtube-daily-link")
+      .addEventListener("click", function (event) {
+        if (this.getAttribute("aria-disabled") === "true") {
+          event.preventDefault();
+        }
+      });
+
     updateStatus();
+    updateYoutubeDailyLink();
   </script>
 </body>
 </html>
