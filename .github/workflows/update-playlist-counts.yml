@@ -51,7 +51,7 @@ jobs:
           }
 
           # Daily zusätzlich für die Metadaten
-          daily_playlist_id = "PLUu1efwCKMCM"
+          daily_playlist_id = "PLMZg6wklIG4I"
 
           all_playlists = {
               **playlists,
@@ -282,7 +282,7 @@ jobs:
                       )
 
                       if not video_id:
-                          continue
+                        continue
 
                       details[video_id] = {
                           "videoId": video_id,
