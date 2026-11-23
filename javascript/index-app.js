@@ -1,9 +1,10 @@
+
 /* Kanal-Radio Amels – zentrale Seitenauswahl und HTML-Includes */
 (async function () {
   "use strict";
   const root = new URL("../", document.currentScript?.src || document.baseURI);
   const status = document.getElementById("app-status");
-  const DAILY_ID = "PLUu1efwCKMCM";
+  const DAILY_ID = "PLMZg6wklIG4I";
   const params = new URLSearchParams(window.location.search);
   const hasList = params.has("list");
   const requestedId = hasList ? (params.get("list") || "").trim() : DAILY_ID;
