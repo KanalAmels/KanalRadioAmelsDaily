@@ -2,7 +2,7 @@
 /*
  * Kanal-Radio Amels
  * radio-player.js – YouTube-Player
- * 20.11.2026
+ * 26.11.2026
  *
  * Player und Playlist gehören zusammen.
  * Die Startposition wird nach dem Laden
@@ -13,6 +13,13 @@
  * freigegeben.
  *
  * LAST/NEXT: Zyklische Playlist-Navigation.
+ *
+ * Daily:
+ * Nur die ersten "max" Songs werden geladen.
+ * Die Wiedergabe startet bei "startSong".
+ * Nicht freigegebene Songs werden nicht geladen.
+ *
+ * Jahrzehntsender bleiben unverändert.
  */
 
 const RADIO_READY_TIMEOUT = 20000;
@@ -29,6 +36,9 @@ let radioTimeoutTimer = null;
 let radioRetryTimer = null;
 let radioRetryCount = 0;
 let radioPlaylistRequested = false;
+
+// Die tatsächlich freigegebene Daily-Playlist
+let radioDailyVideoIds = null;
 
 // --------------------------------------------------
 // YouTube-Player-API
@@ -76,6 +86,113 @@ function describePlayerState(state) {
     };
 
     return names[state] || "UNKNOWN";
+}
+
+// --------------------------------------------------
+// Daily-Playlist vorbereiten
+// --------------------------------------------------
+
+function prepareDailyVideoIds() {
+    if (!isDaily) {
+        radioDailyVideoIds = null;
+        return;
+    }
+
+    if (
+        !playlistMetadata ||
+        !Array.isArray(playlistMetadata.songs)
+    ) {
+        throw new Error(
+            "Daily-Metadaten fehlen. " +
+            "Bitte Update Playlist Counts ausführen."
+        );
+    }
+
+    if (
+        !Number.isSafeInteger(dailyMaxSongs) ||
+        dailyMaxSongs < 1
+    ) {
+        throw new Error(
+            "Daily: Ungültiger max-Wert."
+        );
+    }
+
+    const songs = playlistMetadata.songs.slice(
+        0,
+        dailyMaxSongs
+    );
+
+    if (songs.length === 0) {
+        throw new Error(
+            "Daily: Keine freigegebenen Songs vorhanden."
+        );
+    }
+
+    const videoIds = songs.map(function (song) {
+        return song && song.videoId;
+    });
+
+    const videoIdPattern = /^[A-Za-z0-9_-]{11}$/;
+
+    if (
+        videoIds.some(function (id) {
+            return (
+                typeof id !== "string" ||
+                !videoIdPattern.test(id)
+            );
+        })
+    ) {
+        throw new Error(
+            "Daily: Mindestens eine Video-ID fehlt " +
+            "oder ist ungültig."
+        );
+    }
+
+    radioDailyVideoIds = videoIds;
+
+    if (
+        radioExpectedStartIndex < 0 ||
+        radioExpectedStartIndex >= radioDailyVideoIds.length
+    ) {
+        throw new Error(
+            "Daily: Startsong liegt außerhalb " +
+            "der freigegebenen Playlist."
+        );
+    }
+
+    console.log(
+        "KanalRadio Daily:",
+        radioDailyVideoIds.length,
+        "Songs freigegeben."
+    );
+
+    console.log(
+        "KanalRadio Daily: Start mit Song",
+        radioExpectedStartIndex + 1
+    );
+}
+
+function isExpectedDailyPlaylist(playlist) {
+    if (!isDaily) {
+        return true;
+    }
+
+    if (
+        !Array.isArray(radioDailyVideoIds) ||
+        !Array.isArray(playlist)
+    ) {
+        return false;
+    }
+
+    if (
+        playlist.length !== radioDailyVideoIds.length
+    ) {
+        return false;
+    }
+
+    return playlist.every(function (videoId, index) {
+        return videoId === radioDailyVideoIds[index];
+    });
 }
 
 // --------------------------------------------------
@@ -135,6 +252,10 @@ function finishRadioInitialization() {
 
     if (!playlist) return;
 
+    if (!isExpectedDailyPlaylist(playlist)) {
+        return;
+    }
+
     const index = player.getPlaylistIndex();
 
     if (index !== radioExpectedStartIndex) {
@@ -152,6 +273,15 @@ function finishRadioInitialization() {
     initialPlaylistPrepared = true;
     playerReady = true;
     radioControlsReady = true;
+
+    // Daily soll innerhalb der freigegebenen
+    // Songs automatisch wieder von vorne beginnen.
+    if (
+        isDaily &&
+        typeof player.setLoop === "function"
+    ) {
+        player.setLoop(true);
+    }
 
     setRadioControlsEnabled(true);
     setRadioLoadingStatus("");
@@ -180,6 +310,12 @@ function checkRadioInitialization() {
     const playlist = getRadioPlaylist();
 
     if (!playlist) return;
+
+    // Bei Daily muss die tatsächlich geladene
+    // Playlist exakt der Freigabeliste entsprechen.
+    if (!isExpectedDailyPlaylist(playlist)) {
+        return;
+    }
 
     if (
         radioExpectedStartIndex < 0 ||
@@ -247,11 +383,24 @@ function requestRadioPlaylist() {
     radioPlaylistRequested = true;
 
     try {
-        player.cuePlaylist({
-            listType: "playlist",
-            list: radioConfig.playlist,
-            index: radioExpectedStartIndex
-        });
+        if (isDaily) {
+            // Daily: Nur freigegebene Video-IDs
+            // an YouTube übergeben.
+            player.cuePlaylist({
+                playlist: radioDailyVideoIds,
+                index: radioExpectedStartIndex,
+                startSeconds: 0
+            });
+
+        } else {
+            // Jahrzehntsender: Bisherige
+            // Playliststeuerung unverändert.
+            player.cuePlaylist({
+                listType: "playlist",
+                list: radioConfig.playlist,
+                index: radioExpectedStartIndex
+            });
+        }
 
         initialPlaylistPrepared = true;
 
@@ -339,20 +488,29 @@ function initializeYouTubePlayer() {
 
     playerReady = false;
     initialPlaylistPrepared = false;
+    radioDailyVideoIds = null;
 
     setRadioControlsEnabled(false);
     setRadioLoadingStatus("Playlist wird geladen …");
+
+    // Bei Daily wird zunächst keine vollständige
+    // YouTube-Playlist geladen. Die freigegebene
+    // Playlist folgt erst nach dem Lesen der JSON.
+    const playerVars = {
+        playsinline: 1,
+        rel: 0
+    };
+
+    if (!isDaily) {
+        playerVars.listType = "playlist";
+        playerVars.list = config.playlist;
+    }
 
     player = new YT.Player("radio", {
         width: "100%",
         height: "100%",
 
-        playerVars: {
-            listType: "playlist",
-            list: config.playlist,
-            playsinline: 1,
-            rel: 0
-        },
+        playerVars: playerVars,
 
         events: {
             onReady: async function () {
@@ -367,6 +525,10 @@ function initializeYouTubePlayer() {
                     if (radioInitializationFailed) {
                         return;
                     }
+
+                    // Nur Daily:
+                    // Freigegebene Songs zusammenstellen.
+                    prepareDailyVideoIds();
 
                     console.log(
                         "KanalRadio: Gewünschter Startsong:",
@@ -550,6 +712,19 @@ function jumpSongs(offset) {
         return;
     }
 
+    // Bei Daily nur Navigation innerhalb
+    // der freigegebenen Songs erlauben.
+    if (
+        isDaily &&
+        !isExpectedDailyPlaylist(playlist)
+    ) {
+        console.warn(
+            "KanalRadio Daily: Playlist stimmt " +
+            "nicht mit der Freigabeliste überein."
+        );
+        return;
+    }
+
     const currentIndex = player.getPlaylistIndex();
 
     if (
@@ -564,9 +739,9 @@ function jumpSongs(offset) {
         return;
     }
 
-    // NEU: Zyklischer Übergang
-    // 25/25 + NEXT -> 1/25
-    // 1/25 + LAST -> 25/25
+    // Zyklischer Übergang
+    // 12/12 + NEXT -> 1/12
+    // 1/12 + LAST -> 12/12
     const targetIndex =
         (
             (
