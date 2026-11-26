@@ -19,11 +19,6 @@
  * Die Wiedergabe startet bei "startSong".
  * Nicht freigegebene Songs werden nicht geladen.
  *
- * Untertitel:
- * Standardmäßig nicht anfordern.
- * Persönliche YouTube-Einstellungen können
- * das Verhalten weiterhin beeinflussen.
- *
  * Jahrzehntsender bleiben unverändert.
  */
 
@@ -501,16 +496,9 @@ function initializeYouTubePlayer() {
     // Bei Daily wird zunächst keine vollständige
     // YouTube-Playlist geladen. Die freigegebene
     // Playlist folgt erst nach dem Lesen der JSON.
-    //
-    // Untertitel:
-    // cc_load_policy = 0 fordert keine Untertitel an.
-    // Dies entspricht dem YouTube-Standard.
-    // Nutzereinstellungen können Untertitel
-    // weiterhin automatisch einschalten.
     const playerVars = {
         playsinline: 1,
-        rel: 0,
-        cc_load_policy: 0
+        rel: 0
     };
 
     if (!isDaily) {
