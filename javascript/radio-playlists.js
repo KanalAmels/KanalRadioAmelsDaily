@@ -10,8 +10,8 @@
  *
  * Daily:
  * startSong = gewünschter Startsong
- * max       = Anzahl freigegebener Songs
  *
+ * Die vollständige Playlist wird verwendet.
  * Alle Jahrzehntsender bleiben unverändert.
  */
 
@@ -29,7 +29,6 @@ let initialStartRequested = false;
 // Playlistdaten
 let playlistMetadata = null;
 let dailyStartIndex = 0;
-let dailyMaxSongs = null;
 let initialPlaylistPrepared = false;
 let pendingSongIndex = null;
 let dailyStartLoaded = false;
@@ -121,8 +120,7 @@ const metadataPromise = fetch(metadataUrl, {
 async function readDailySettings() {
     if (!isDaily) {
         return {
-            index: 0,
-            max: null
+            index: 0
         };
     }
 
@@ -149,49 +147,24 @@ async function readDailySettings() {
             );
         }
 
-        if (
-            !Number.isSafeInteger(data.max) ||
-            data.max < 1
-        ) {
-            throw new Error(
-                "max muss eine positive " +
-                "ganze Zahl sein."
-            );
-        }
-
-        if (data.startSong > data.max) {
-            throw new Error(
-                "startSong darf nicht größer " +
-                "als max sein."
-            );
-        }
-
         console.log(
             "KanalRadio Daily: Startsong:",
             data.startSong
         );
 
-        console.log(
-            "KanalRadio Daily: Freigabe bis Song:",
-            data.max
-        );
-
         return {
-            index: data.startSong - 1,
-            max: data.max
+            index: data.startSong - 1
         };
 
     } catch (error) {
         console.warn(
             "KanalRadio Daily: Konfiguration " +
-            "nicht geladen. Verwende Song 1 " +
-            "und begrenze auf einen Song.",
+            "nicht geladen. Verwende Song 1.",
             error.message
         );
 
         return {
-            index: 0,
-            max: 1
+            index: 0
         };
     }
 }
@@ -199,7 +172,6 @@ async function readDailySettings() {
 const dailyStartPromise = readDailySettings()
     .then(function (settings) {
         dailyStartIndex = settings.index;
-        dailyMaxSongs = settings.max;
         dailyStartLoaded = true;
 
         if (
@@ -241,15 +213,10 @@ async function prepareRadioStartData() {
             );
         }
 
-        dailyMaxSongs = Math.min(
-            dailyMaxSongs,
-            songs.length
-        );
-
-        if (index >= dailyMaxSongs) {
+        if (index >= songs.length) {
             console.warn(
                 "KanalRadio Daily: Startposition " +
-                "außerhalb der freigegebenen Songs. " +
+                "außerhalb der Playlist. " +
                 "Verwende Song 1."
             );
 
@@ -257,9 +224,7 @@ async function prepareRadioStartData() {
         }
 
         console.log(
-            "KanalRadio Daily: Freigegebene Songs:",
-            dailyMaxSongs,
-            "von",
+            "KanalRadio Daily: Songs insgesamt:",
             songs.length
         );
     }
