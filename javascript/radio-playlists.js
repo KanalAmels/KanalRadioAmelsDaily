@@ -2,11 +2,17 @@
 /*
  * Kanal-Radio Amels
  * radio-playlists.js – Playlistverwaltung
- * 20.11.2026
+ * 26.11.2026
  *
  * Gemeinsamer Zustand und Datenbeschaffung.
  * Der Player wird ausschließlich in
  * radio-player.js initialisiert.
+ *
+ * Daily:
+ * startSong = gewünschter Startsong
+ * max       = Anzahl freigegebener Songs
+ *
+ * Alle Jahrzehntsender bleiben unverändert.
  */
 
 // Gemeinsamer Playerzustand
@@ -23,6 +29,7 @@ let initialStartRequested = false;
 // Playlistdaten
 let playlistMetadata = null;
 let dailyStartIndex = 0;
+let dailyMaxSongs = null;
 let initialPlaylistPrepared = false;
 let pendingSongIndex = null;
 let dailyStartLoaded = false;
@@ -53,7 +60,7 @@ const metadataUrl = new URL(
     radioBaseUrl
 ).href;
 
-// Daily-Start liegt weiterhin beim aufrufenden Sender
+// Daily-Konfiguration
 const dailyStartUrl = new URL(
     "../json/daily-start.json",
     radioBaseUrl
@@ -110,10 +117,13 @@ const metadataPromise = fetch(metadataUrl, {
         return null;
     });
 
-// Daily-Startposition lesen
-async function readDailyStartIndex() {
+// Daily-Konfiguration lesen
+async function readDailySettings() {
     if (!isDaily) {
-        return 0;
+        return {
+            index: 0,
+            max: null
+        };
     }
 
     try {
@@ -139,29 +149,57 @@ async function readDailyStartIndex() {
             );
         }
 
-        const index = data.startSong - 1;
+        if (
+            !Number.isSafeInteger(data.max) ||
+            data.max < 1
+        ) {
+            throw new Error(
+                "max muss eine positive " +
+                "ganze Zahl sein."
+            );
+        }
+
+        if (data.startSong > data.max) {
+            throw new Error(
+                "startSong darf nicht größer " +
+                "als max sein."
+            );
+        }
 
         console.log(
             "KanalRadio Daily: Startsong:",
             data.startSong
         );
 
-        return index;
+        console.log(
+            "KanalRadio Daily: Freigabe bis Song:",
+            data.max
+        );
+
+        return {
+            index: data.startSong - 1,
+            max: data.max
+        };
 
     } catch (error) {
         console.warn(
-            "KanalRadio Daily: Startposition " +
-            "nicht geladen. Verwende Song 1.",
+            "KanalRadio Daily: Konfiguration " +
+            "nicht geladen. Verwende Song 1 " +
+            "und begrenze auf einen Song.",
             error.message
         );
 
-        return 0;
+        return {
+            index: 0,
+            max: 1
+        };
     }
 }
 
-const dailyStartPromise = readDailyStartIndex()
-    .then(function (index) {
-        dailyStartIndex = index;
+const dailyStartPromise = readDailySettings()
+    .then(function (settings) {
+        dailyStartIndex = settings.index;
+        dailyMaxSongs = settings.max;
         dailyStartLoaded = true;
 
         if (
@@ -170,7 +208,7 @@ const dailyStartPromise = readDailyStartIndex()
             updateVideoTitle();
         }
 
-        return index;
+        return dailyStartIndex;
     });
 
 // Einheitliche Vorbereitung der Startdaten
@@ -195,7 +233,42 @@ async function prepareRadioStartData() {
             ? playlistMetadata.songs
             : null;
 
-    if (songs && index >= songs.length) {
+    if (isDaily && songs) {
+        if (songs.length === 0) {
+            throw new Error(
+                "Die Daily-Playlist enthält " +
+                "keine Songs."
+            );
+        }
+
+        dailyMaxSongs = Math.min(
+            dailyMaxSongs,
+            songs.length
+        );
+
+        if (index >= dailyMaxSongs) {
+            console.warn(
+                "KanalRadio Daily: Startposition " +
+                "außerhalb der freigegebenen Songs. " +
+                "Verwende Song 1."
+            );
+
+            index = 0;
+        }
+
+        console.log(
+            "KanalRadio Daily: Freigegebene Songs:",
+            dailyMaxSongs,
+            "von",
+            songs.length
+        );
+    }
+
+    if (
+        songs &&
+        !isDaily &&
+        index >= songs.length
+    ) {
         console.warn(
             "KanalRadio: Startposition außerhalb " +
             "der Metadaten. Verwende Song 1."
