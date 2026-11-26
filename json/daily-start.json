@@ -1,4 +1,6 @@
 
+
 {
-  "startSong": 12
+  "startSong": 12,
+  "max": 15
 }
