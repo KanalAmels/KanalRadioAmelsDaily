@@ -15,9 +15,8 @@
  * LAST/NEXT: Zyklische Playlist-Navigation.
  *
  * Daily:
- * Nur die ersten "max" Songs werden geladen.
+ * Die vollständige Playlist wird geladen.
  * Die Wiedergabe startet bei "startSong".
- * Nicht freigegebene Songs werden nicht geladen.
  *
  * Jahrzehntsender bleiben unverändert.
  */
@@ -37,7 +36,7 @@ let radioRetryTimer = null;
 let radioRetryCount = 0;
 let radioPlaylistRequested = false;
 
-// Die tatsächlich freigegebene Daily-Playlist
+// Vollständige Daily-Playlist
 let radioDailyVideoIds = null;
 
 // --------------------------------------------------
@@ -108,23 +107,11 @@ function prepareDailyVideoIds() {
         );
     }
 
-    if (
-        !Number.isSafeInteger(dailyMaxSongs) ||
-        dailyMaxSongs < 1
-    ) {
-        throw new Error(
-            "Daily: Ungültiger max-Wert."
-        );
-    }
-
-    const songs = playlistMetadata.songs.slice(
-        0,
-        dailyMaxSongs
-    );
+    const songs = playlistMetadata.songs;
 
     if (songs.length === 0) {
         throw new Error(
-            "Daily: Keine freigegebenen Songs vorhanden."
+            "Daily: Keine Songs vorhanden."
         );
     }
 
@@ -156,14 +143,14 @@ function prepareDailyVideoIds() {
     ) {
         throw new Error(
             "Daily: Startsong liegt außerhalb " +
-            "der freigegebenen Playlist."
+            "der Playlist."
         );
     }
 
     console.log(
         "KanalRadio Daily:",
         radioDailyVideoIds.length,
-        "Songs freigegeben."
+        "Songs geladen."
     );
 
     console.log(
@@ -274,8 +261,7 @@ function finishRadioInitialization() {
     playerReady = true;
     radioControlsReady = true;
 
-    // Daily soll innerhalb der freigegebenen
-    // Songs automatisch wieder von vorne beginnen.
+    // Daily automatisch wiederholen
     if (
         isDaily &&
         typeof player.setLoop === "function"
@@ -311,8 +297,6 @@ function checkRadioInitialization() {
 
     if (!playlist) return;
 
-    // Bei Daily muss die tatsächlich geladene
-    // Playlist exakt der Freigabeliste entsprechen.
     if (!isExpectedDailyPlaylist(playlist)) {
         return;
     }
@@ -384,8 +368,7 @@ function requestRadioPlaylist() {
 
     try {
         if (isDaily) {
-            // Daily: Nur freigegebene Video-IDs
-            // an YouTube übergeben.
+            // Daily: Vollständige Playlist
             player.cuePlaylist({
                 playlist: radioDailyVideoIds,
                 index: radioExpectedStartIndex,
@@ -393,8 +376,7 @@ function requestRadioPlaylist() {
             });
 
         } else {
-            // Jahrzehntsender: Bisherige
-            // Playliststeuerung unverändert.
+            // Jahrzehntsender unverändert
             player.cuePlaylist({
                 listType: "playlist",
                 list: radioConfig.playlist,
@@ -493,9 +475,9 @@ function initializeYouTubePlayer() {
     setRadioControlsEnabled(false);
     setRadioLoadingStatus("Playlist wird geladen …");
 
-    // Bei Daily wird zunächst keine vollständige
-    // YouTube-Playlist geladen. Die freigegebene
-    // Playlist folgt erst nach dem Lesen der JSON.
+    // Daily lädt ihre Songs nach dem Einlesen
+    // der Metadaten. Jahrzehntsender bleiben
+    // bei ihrer bisherigen YouTube-Playlist.
     const playerVars = {
         playsinline: 1,
         rel: 0
@@ -526,8 +508,6 @@ function initializeYouTubePlayer() {
                         return;
                     }
 
-                    // Nur Daily:
-                    // Freigegebene Songs zusammenstellen.
                     prepareDailyVideoIds();
 
                     console.log(
@@ -712,15 +692,13 @@ function jumpSongs(offset) {
         return;
     }
 
-    // Bei Daily nur Navigation innerhalb
-    // der freigegebenen Songs erlauben.
     if (
         isDaily &&
         !isExpectedDailyPlaylist(playlist)
     ) {
         console.warn(
             "KanalRadio Daily: Playlist stimmt " +
-            "nicht mit der Freigabeliste überein."
+            "nicht mit den Metadaten überein."
         );
         return;
     }
@@ -739,9 +717,9 @@ function jumpSongs(offset) {
         return;
     }
 
-    // Zyklischer Übergang
-    // 12/12 + NEXT -> 1/12
-    // 1/12 + LAST -> 12/12
+    // Zyklische Navigation:
+    // Letzter Song + NEXT = erster Song
+    // Erster Song + LAST = letzter Song
     const targetIndex =
         (
             (
